@@ -20,6 +20,24 @@ let U        = {name:'',email:'',photo:'',id:'',color:'#c45c5c',username:'',bio:
 let room     = null;
 let els      = [];
 let peers    = {};
+/* Ponte pra parte nativa saber se há algo tocando de verdade. O app nativo
+   consulta isso ANTES de acender o serviço de segundo plano — sem essa
+   pergunta, ele acendia a notificação toda vez que você minimizava o app,
+   mesmo sem nada tocando, o que é desperdício de bateria e aumenta a chance
+   de esbarrar nas restrições do Android para iniciar serviço em primeiro
+   plano a partir de segundo plano. */
+window.__algoTocando = function(){
+  try{
+    if (typeof callActive!=='undefined' && callActive) return true;
+    if (typeof desiredPlaying==='object'){
+      for(const k in desiredPlaying) if(desiredPlaying[k]) return true;
+    }
+    if (typeof mPlaying==='object'){
+      for(const k in mPlaying) if(mPlaying[k]) return true;
+    }
+    return false;
+  }catch(e){ return false; }
+};
 let ytPlrs   = {};  // uid -> YT.Player (ou proxy compatível: playVideo/pauseVideo/seekTo/getCurrentTime/getDuration/isPlaying)
 let _vtTimers = {}; // uid -> id do setInterval que atualiza o tempo exibido (limpo ao remover o card)
 let ytReady  = false;

@@ -52,15 +52,33 @@ public class PlaybackService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(ID_NOTIFICACAO, montarNotificacao());
-        pedirFoco();
-        if (sessao != null) {
-            sessao.setActive(true);
-            sessao.setPlaybackState(new PlaybackStateCompat.Builder()
-                    .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
-                    .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1f)
-                    .build());
+        /* CAUSA MAIS PROVÁVEL DO CRASH — esta chamada não tinha proteção nenhuma.
+           startForeground() pode lançar SecurityException em alguns aparelhos e
+           versões do Android quando a permissão específica do tipo de serviço
+           (FOREGROUND_SERVICE_MEDIA_PLAYBACK) não está reconhecida no exato
+           instante da chamada — e diferente do startForegroundService() lá na
+           Activity (que já tinha try/catch), essa exceção acontece DEPOIS,
+           dentro do próprio ciclo de vida do serviço, e nenhum try/catch de fora
+           alcança ela. Sem captura aqui, ela sobe até o sistema e o processo
+           inteiro é encerrado — batendo exatamente com "app finalizado ao
+           minimizar", sem nenhum erro visível na tela. */
+        try {
+            startForeground(ID_NOTIFICACAO, montarNotificacao());
+        } catch (Throwable t) {
+            android.util.Log.w("there.fm", "não consegui virar serviço em primeiro plano: " + t);
+            stopSelf();          // desiste deste início específico, sem derrubar o app
+            return START_NOT_STICKY;
         }
+        pedirFoco();
+        try {
+            if (sessao != null) {
+                sessao.setActive(true);
+                sessao.setPlaybackState(new PlaybackStateCompat.Builder()
+                        .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
+                        .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1f)
+                        .build());
+            }
+        } catch (Throwable ignored) {}
         return START_STICKY;
     }
 

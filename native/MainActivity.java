@@ -56,12 +56,23 @@ public class MainActivity extends BridgeActivity {
     public void onPause() {
         super.onPause();
         try {
-            PlaybackService.iniciar(this);
-            WebView wv = getBridge().getWebView();
-            if (wv != null) {
-                wv.onResume();        // desfaz a pausa aplicada pelo Capacitor
-                wv.resumeTimers();    // mantém os relógios da página correndo
-            }
+            final WebView wv = getBridge().getWebView();
+            if (wv == null) return;
+            wv.onResume();        // desfaz a pausa aplicada pelo Capacitor
+            wv.resumeTimers();    // mantém os relógios da página correndo
+
+            /* CORRIGIDO: antes o serviço acendia SEMPRE ao minimizar, mesmo sem
+               nada tocando — desperdiçava bateria e multiplicava as chances de
+               esbarrar na restrição do Android para iniciar serviço em primeiro
+               plano vindo de segundo plano (que é justamente uma causa comum de
+               encerramento forçado). Agora perguntamos à própria página se algo
+               está tocando de verdade antes de acender qualquer coisa. */
+            wv.evaluateJavascript(
+                "(window.__algoTocando ? window.__algoTocando() : false)",
+                valor -> {
+                    if ("true".equals(valor)) PlaybackService.iniciar(MainActivity.this);
+                }
+            );
         } catch (Throwable ignored) {}
     }
 

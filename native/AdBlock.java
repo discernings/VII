@@ -52,10 +52,25 @@ public class AdBlock {
     /** Trechos que denunciam publicidade em qualquer domínio. */
     private static final List<String> PADROES = Arrays.asList(
         "/pagead/", "/adsbygoogle", "/ad_status", "/get_midroll_", "/api/stats/ads",
-        "/googleads", "/ad-choices", "/advert", "/adserver", "/ad_frame",
+        "/googleads", "/ad-choices", "/adserver", "/ad_frame",
         "/banners/", "/popunder", "/prebid", "/vast.xml", "/vmap.xml",
-        "adframe.js", "ads.js", "advertisement", "/sponsored/", "/promoted/"
+        "adframe.js", "advertisement", "/sponsored/", "/promoted/"
     );
+
+    /* Padrões que exigem posição exata (não apenas "conter o texto").
+       "ads.js" e "advert" soltos como texto bateram em nomes de arquivo
+       perfeitamente legítimos de players de vídeo: reloads.js, payloads.js,
+       threads.js, downloads.js, uploads.js, e endereços como
+       ".../advertorial-manifest.json" — nenhum desses é anúncio. Isso explica
+       um congelamento bem específico: se o player carrega o próximo trecho do
+       vídeo por um script com um desses nomes comuns, bloqueávamos ele bem na
+       troca de cena. Agora exigimos que o nome apareça como um SEGMENTO
+       próprio do caminho (depois de uma barra ou no início), não como
+       sobra de outra palavra. */
+    private static final java.util.regex.Pattern PADRAO_ADS_JS =
+        java.util.regex.Pattern.compile("(^|/)ads\\.js(\\?|$)");
+    private static final java.util.regex.Pattern PADRAO_ADVERT =
+        java.util.regex.Pattern.compile("/advert(?:[/.?]|$)");
 
     private static final byte[] VAZIO = new byte[0];
 
@@ -84,6 +99,8 @@ public class AdBlock {
         for (String p : PADROES) {
             if (u.contains(p)) return true;
         }
+        if (PADRAO_ADS_JS.matcher(u).find())  return true;
+        if (PADRAO_ADVERT.matcher(u).find())  return true;
         return false;
     }
 

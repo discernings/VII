@@ -570,7 +570,7 @@ function mkGenericIframe(embedUrl,x,y,id,container,broadcastIt){
   embedUrl=normalizeEmbedUrl(embedUrl);
   const w=document.createElement('div'); w.className='card vid-card'; w.dataset.type='iframe'; w.dataset.itemId=id; w.dataset.embedUrl=embedUrl;
   Object.assign(w.style,{position:'absolute',left:x+'px',top:y+'px',zIndex:++zTop,width:VID_W+'px',height:(HEAD+VID_H+NOTE_H)+'px',display:'flex',flexDirection:'column'});
-  w.innerHTML=`<div class="ch" style="height:${HEAD}px;flex-shrink:0"><span class="ct">▶ Vídeo</span><div style="display:flex;align-items:center;gap:.38rem"><span class="vnosync" title="Este player não permite controle externo">SEM SYNC</span><button class="vcbtn" onclick="findSyncForCard(this)" title="Procurar versão que sincroniza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button><a class="vcbtn" href="${embedUrl}" target="_blank" rel="noopener" title="Abrir em nova aba" style="line-height:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a><button class="cx" onclick="removeEl(this.closest('.card'))">×</button></div></div>`;
+  w.innerHTML=`<div class="ch" style="height:${HEAD}px;flex-shrink:0"><span class="ct">▶ Vídeo</span><div style="display:flex;align-items:center;gap:.38rem"><span class="vnosync" title="Este player não permite controle externo">SEM SYNC</span><button class="vcbtn" onclick="recarregarIframeCard(this)" title="Recarregar (útil se travar no meio)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 9A9 9 0 105.64 18.36L1 14M23 4l-4.64 5.36"/></svg></button><button class="vcbtn" onclick="findSyncForCard(this)" title="Procurar versão que sincroniza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button><a class="vcbtn" href="${embedUrl}" target="_blank" rel="noopener" title="Abrir em nova aba" style="line-height:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a><button class="cx" onclick="removeEl(this.closest('.card'))">×</button></div></div>`;
 
   const holder=document.createElement('div');
   holder.style.cssText='position:relative;flex:1;min-height:0;width:100%;background:#000;overflow:hidden';
@@ -629,6 +629,26 @@ async function findSyncForCard(btn){
     console.error('findSyncForCard',e);
     toast('Não consegui procurar agora','err');
   }
+}
+/* Botão de recarregar SEMPRE visível no card, não só quando o carregamento
+   falha de cara. Muitos sites de vídeo (principalmente agregadores com proxy
+   de streaming pago por anúncio) travam no MEIO da reprodução sem disparar
+   nenhum evento de erro — o iframe carregou certinho no início, então o aviso
+   de falha nunca aparece. Sem um jeito manual de recarregar, a única saída
+   era apagar o card inteiro e recriar.
+   Trocar o endereço por um levemente diferente (um parâmetro extra no fim)
+   força o navegador a buscar tudo de novo, em vez de reaproveitar o que
+   travou — o que costuma bastar quando a causa é um proxy/token expirado do
+   próprio site. */
+function recarregarIframeCard(btn){
+  const card=btn.closest('.card'); if(!card) return;
+  const holder=card.querySelector('div[style*="position:relative"]');
+  const ifr=card.querySelector('iframe'); if(!ifr) return;
+  const base=card.dataset.embedUrl||ifr.src;
+  const separador=base.includes('?')?'&':'?';
+  ifr.src=base+separador+'_r='+Date.now();
+  const f=holder&&holder.querySelector('.ifr-fallback'); if(f) f.remove();
+  toast('Recarregando o player...');
 }
 function showIframeFallback(holder,url){
   if(holder.querySelector('.ifr-fallback')) return;

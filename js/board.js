@@ -307,6 +307,8 @@ function renderBoardNode(n){
     el.dataset.bnId=n.id;
     const canEdit=n.created_by===U.id;
     el.innerHTML=`<div class="board-node-head" data-drag>
+        <span class="board-node-chevron"></span>
+        <span class="board-node-dot"></span>
         <span class="board-node-owner"></span>
         <span class="board-node-time"></span>
         <span class="board-node-actions">
@@ -315,10 +317,15 @@ function renderBoardNode(n){
         </span>
       </div>
       ${isImg?`<img src="${n.image_url||''}" draggable="false">`:'<div class="board-node-body" contenteditable="true" spellcheck="false"></div>'}
-      <span class="board-node-rz" data-rz title="Redimensionar"></span>`;
+      <span class="board-node-rz" data-rz title="Redimensionar"></span>
+      <button class="board-node-reply" data-reply title="Responder" aria-label="Responder esta nota">+</button>`;
     el.querySelector('[data-drag]').addEventListener('pointerdown',e=>startBoardDrag(e,n.id));
     el.querySelector('[data-rz]').addEventListener('pointerdown',e=>startBoardResize(e,n.id));
     el.querySelector('[data-link]').addEventListener('click',e=>{ e.stopPropagation(); startConnectFrom(n.id); });
+    /* Disponível pra QUALQUER pessoa, dona da nota ou não — funciona nos dois
+       sentidos, como pedido: responder uma nota de outra pessoa, ou deixar que
+       outra pessoa responda uma nota sua. */
+    el.querySelector('[data-reply]').addEventListener('click',e=>{ e.stopPropagation(); responderNota(n.id); });
     const del=el.querySelector('[data-del]'); if(del) del.addEventListener('click',e=>{ e.stopPropagation(); deleteBoardNode(n.id); });
     if(!isImg){
       const body=el.querySelector('.board-node-body');
@@ -342,7 +349,11 @@ function renderBoardNode(n){
   n._w=null; n._h=null;               // invalida o cache; remedimos fora do caminho crítico
   requestAnimationFrame(()=>{ if(boardNodes[n.id]){ const e2=document.getElementById('bn-'+n.id); if(e2){ n._w=e2.offsetWidth; n._h=e2.offsetHeight; } } });
   if(!isImg){
-    el.style.background=n.color||'#f5d78a';
+    /* A cor escolhida não vira mais o fundo inteiro (aquele visual de post-it
+       pastel) — no novo desenho o cartão é escuro, no estilo "bloco", e a cor
+       vira o acento: contorno luminoso e a pastilha do cabeçalho. Isso mantém
+       a escolha de cor útil, só traduzida pro visual novo. */
+    el.style.setProperty('--nota-cor', n.color||'#f5d78a');
     const body=el.querySelector('.board-node-body');
     if(body && document.activeElement!==body) body.innerText=n.content||'';
   }
@@ -466,6 +477,55 @@ function abrirSeletorCorNota(){
     });
   }
   p.classList.toggle('on');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONDER UMA NOTA
+   Cria uma nota nova já conectada à original, do jeito que qualquer pessoa —
+   dona da nota original ou não — pode fazer, nos dois sentidos. Reaproveita
+   exatamente a mesma inserção usada pelo botão "Conectar" manual, então o
+   resultado nunca diverge do comportamento já testado dos conectores.
+   ══════════════════════════════════════════════════════════════════ */
+async function responderNota(id){
+  const original=boardNodes[id]; if(!original) return;
+  const supa=getSupa();
+  const [ow,oh]=medidaReal(id,original);
+
+  /* Nasce ao lado da nota original, um pouco abaixo — como o "follow-up
+     block" do exemplo. Se não houver espaço ali, a busca em espiral
+     (a mesma da criação normal) acha o próximo lugar livre. */
+  const desejo={ x:Math.round((original.x||0)+ow+60), y:Math.round((original.y||0)+40) };
+  const pos = colideComAlguma(desejo.x,desejo.y,240,220)
+    ? acharLugarLivre(240,220)
+    : desejo;
+
+  const row={ type:'text', content:'', x:pos.x, y:pos.y, w:220, h:150,
+              color:original.color||BOARD_COLORS[0], created_by:U.id, reply_to:id };
+  const { data, error }=await supa.from('board_nodes').insert(row).select().maybeSingle();
+  if(error){
+    // a coluna reply_to pode não existir ainda no banco — tenta de novo sem ela
+    if(/reply_to/.test(error.message||'')){
+      delete row.reply_to;
+      const retry=await supa.from('board_nodes').insert(row).select().maybeSingle();
+      if(retry.error){ toast('Erro ao responder: '+retry.error.message,'err'); return; }
+      return finalizarResposta(id,retry.data);
+    }
+    console.error('responderNota error',error); toast('Erro ao responder: '+error.message,'err'); return;
+  }
+  finalizarResposta(id,data);
+}
+async function finalizarResposta(idOriginal,data){
+  boardNodes[data.id]=data; _nodeStamp[data.id]=data.updated_at||data.created_at||'';
+  renderBoardNode(data);
+  ajustarSeColidir(data.id);
+
+  // mesma inserção usada pelo "Conectar" manual — o cabo de luz nasce sozinho
+  const { data:edge, error:edgeErr }=await getSupa().from('board_edges')
+    .insert({ from_node:idOriginal, to_node:data.id, created_by:U.id }).select().maybeSingle();
+  if(!edgeErr){ boardEdges[edge.id]=edge; rebuildEdgeIndex(); scheduleEdgeRedraw(); }
+
+  const el=document.getElementById('bn-'+data.id); const body=el?.querySelector('.board-node-body');
+  if(body){ body.focus(); }
 }
 
 async function addBoardNote(){
@@ -702,6 +762,10 @@ function redrawBoardEdges(only){
       path.setAttribute('class','board-edge'); path.setAttribute('fill','none');
       path.setAttribute('stroke','url(#boardEdgeGrad)');
       path.setAttribute('stroke-linecap','round');
+      const nucleo=document.createElementNS(NS,'path');   // fio de luz bem fino por cima
+      nucleo.setAttribute('class','board-edge-nucleo'); nucleo.setAttribute('fill','none');
+      nucleo.setAttribute('stroke','url(#boardEdgeNucleo)');
+      nucleo.setAttribute('stroke-linecap','round');
       /* A alça é pequena de propósito (fica discreta), mas 7px é impossível de
          acertar com o dedo. Por isso existe um círculo INVISÍVEL bem maior por
          cima, que recebe o toque. É o mesmo truque dos botões pequenos: alvo
@@ -724,8 +788,9 @@ function redrawBoardEdges(only){
       del.appendChild(dc); del.appendChild(dt);
       del.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); deleteBoardEdge(edge.id); });
       svg.appendChild(hit); svg.appendChild(glass); svg.appendChild(path);
+      svg.appendChild(nucleo);
       svg.appendChild(handleHit); svg.appendChild(handle); svg.appendChild(del);
-      g=_edgeEls[edge.id]={hit,glass,path,handle,handleHit,del};
+      g=_edgeEls[edge.id]={hit,glass,path,nucleo,handle,handleHit,del};
     }
     /* O traço termina um pouco ANTES do destino. Sem isso a linha continuava por
        baixo da seta e a curva reaparecia depois dela, deixando aquela sobra feia
@@ -738,6 +803,7 @@ function redrawBoardEdges(only){
     const d=`M ${geo.p1.x} ${geo.p1.y} Q ${geo.cx} ${geo.cy} ${fx} ${fy}`;
     g.path.setAttribute('d',d); g.hit.setAttribute('d',d);
     if(g.glass) g.glass.setAttribute('d',d);
+    if(g.nucleo) g.nucleo.setAttribute('d',d);
     g.path.setAttribute('marker-end','url(#boardArrow)');
     g.path.classList.toggle('sel',sel);
     /* O estado do vidro é marcado AQUI, não por regra de vizinhança no CSS.
@@ -772,24 +838,37 @@ function ensureEdgeDefs(svg){
   grad.setAttribute('gradientUnits','userSpaceOnUse');
   grad.setAttribute('x1','0'); grad.setAttribute('y1','0');
   grad.setAttribute('x2','0'); grad.setAttribute('y2','1200');
-  [['0%','rgba(150,255,200,.95)'],
-   ['45%','rgba(120,220,235,.85)'],
-   ['100%','rgba(180,170,255,.85)']].forEach(([off,cor])=>{
+  [['0%','rgba(200,235,255,.95)'],
+   ['50%','rgba(235,245,255,.9)'],
+   ['100%','rgba(190,210,255,.9)']].forEach(([off,cor])=>{
     const s=document.createElementNS(NS,'stop');
     s.setAttribute('offset',off); s.setAttribute('stop-color',cor);
     grad.appendChild(s);
   });
   defs.appendChild(grad);
+  /* Núcleo bem fino e quase branco por cima de tudo — é o que dá a
+     impressão de "cabo de luz" em vez de traço colorido comum. */
+  const nucleo=document.createElementNS(NS,'linearGradient');
+  nucleo.setAttribute('id','boardEdgeNucleo');
+  nucleo.setAttribute('gradientUnits','userSpaceOnUse');
+  nucleo.setAttribute('x1','0'); nucleo.setAttribute('y1','0');
+  nucleo.setAttribute('x2','0'); nucleo.setAttribute('y2','1200');
+  [['0%','rgba(255,255,255,.95)'],['100%','rgba(235,240,255,.85)']].forEach(([off,cor])=>{
+    const s=document.createElementNS(NS,'stop');
+    s.setAttribute('offset',off); s.setAttribute('stop-color',cor);
+    nucleo.appendChild(s);
+  });
+  defs.appendChild(nucleo);
   /* Degradê do contorno de vidro: branco e tons frios bem baixos. */
   const glassGrad=document.createElementNS(NS,'linearGradient');
   glassGrad.setAttribute('id','boardEdgeGlass');
   glassGrad.setAttribute('gradientUnits','userSpaceOnUse');
   glassGrad.setAttribute('x1','0'); glassGrad.setAttribute('y1','0');
   glassGrad.setAttribute('x2','0'); glassGrad.setAttribute('y2','1200');
-  [['0%','rgba(255,255,255,.30)'],
-   ['40%','rgba(190,235,255,.18)'],
-   ['70%','rgba(255,205,240,.16)'],
-   ['100%','rgba(210,200,255,.22)']].forEach(([off,cor])=>{
+  [['0%','rgba(255,255,255,.34)'],
+   ['40%','rgba(190,225,255,.22)'],
+   ['70%','rgba(200,220,255,.2)'],
+   ['100%','rgba(210,200,255,.24)']].forEach(([off,cor])=>{
     const s=document.createElementNS(NS,'stop');
     s.setAttribute('offset',off); s.setAttribute('stop-color',cor);
     glassGrad.appendChild(s);

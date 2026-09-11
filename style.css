@@ -442,20 +442,83 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 .bz-btn:hover{background:rgba(255,255,255,.1)}
 .bz-lbl{font-size:.68rem;color:var(--ash);min-width:44px;text-align:center;cursor:pointer;user-select:none;font-variant-numeric:tabular-nums}
 .bz-fit{font-size:.85rem}
-.board-node{position:absolute;left:0;top:0;min-width:120px;min-height:80px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:visible;border:1px solid rgba(0,0,0,.35);contain:layout style}
+/* ══════════════════════════════════════════════════════════════════
+   CARTÕES NO ESTILO "BLOCO" — cartão escuro com contorno luminoso, cabeçalho
+   com chevron e pastilha de cor, no lugar do post-it pastel de antes.
+   A cor escolhida (--nota-cor) vira acento: contorno e pastilha, não mais o
+   fundo inteiro — mantém a personalização sem perder a legibilidade do texto.
+   ══════════════════════════════════════════════════════════════════ */
+.board-node{
+  --nota-cor:#7fe0a8;
+  position:absolute;left:0;top:0;min-width:150px;min-height:90px;
+  border-radius:16px;display:flex;flex-direction:column;overflow:visible;
+  background:linear-gradient(175deg,#14181a,#0a0d0e);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.55),
+    0 0 0 1px color-mix(in srgb, var(--nota-cor) 22%, transparent) inset,
+    0 0 22px -6px color-mix(in srgb, var(--nota-cor) 55%, transparent);
+  transition:box-shadow .2s;
+  contain:layout style
+}
+.board-node:hover{
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.6),
+    0 0 0 1px color-mix(in srgb, var(--nota-cor) 38%, transparent) inset,
+    0 0 30px -4px color-mix(in srgb, var(--nota-cor) 70%, transparent)
+}
 .board-node.dragging{will-change:transform}
-.board-node.dragging,.board-node.resizing{box-shadow:0 14px 40px rgba(0,0,0,.75)}
+.board-node.dragging,.board-node.resizing{
+  box-shadow:0 18px 44px rgba(0,0,0,.7),
+    0 0 0 1.5px color-mix(in srgb, var(--nota-cor) 55%, transparent) inset,
+    0 0 34px -2px color-mix(in srgb, var(--nota-cor) 80%, transparent)
+}
 .board-node.connect-sel{outline:2.5px solid var(--green);outline-offset:3px}
-.board-node-head{height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 .3rem;cursor:grab;background:rgba(0,0,0,.16);border-radius:12px 12px 0 0;touch-action:none}
+
+.board-node-head{height:26px;flex-shrink:0;display:flex;align-items:center;gap:.35rem;
+  padding:0 .5rem;cursor:grab;touch-action:none;
+  border-bottom:1px solid rgba(255,255,255,.06);border-radius:16px 16px 0 0}
 .board-node-head:active{cursor:grabbing}
-.board-node-owner{font-size:.62rem;color:rgba(0,0,0,.5);font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px}
-.board-node-actions{display:flex;align-items:center;gap:.2rem;flex-shrink:0}
-.board-node-link,.board-node-del{width:17px;height:17px;border-radius:50%;background:rgba(0,0,0,.34);color:#fff;font-size:.66rem;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;transition:background .15s}
-.board-node-link:hover{background:rgba(40,160,90,.9)}
-.board-node-del:hover{background:rgba(196,92,92,.95)}
-.board-node-body{flex:1;padding:.55rem .65rem;font-size:.85rem;line-height:1.45;color:#1a1a1a;outline:none;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;font-family:'DM Sans',sans-serif;cursor:text;overflow:visible}
-.board-node-rz{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;cursor:nwse-resize;border-radius:0 0 12px 0;touch-action:none;
-  background:linear-gradient(135deg,transparent 45%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.35) 60%,transparent 60%,transparent 72%,rgba(0,0,0,.35) 72%,rgba(0,0,0,.35) 86%,transparent 86%)}
+.board-node-chevron{width:0;height:0;flex-shrink:0;
+  border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:5px solid rgba(255,255,255,.32)}
+.board-node-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--nota-cor);box-shadow:0 0 6px var(--nota-cor)}
+.board-node-owner{font-size:.6rem;letter-spacing:.04em;color:rgba(255,255,255,.5);
+  font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:70px}
+.board-node-time{font-size:.58rem;color:rgba(255,255,255,.32);margin-left:auto;flex-shrink:0}
+.board-node-actions{display:flex;align-items:center;gap:.25rem;flex-shrink:0;margin-left:.3rem}
+.board-node-link,.board-node-del{width:16px;height:16px;border-radius:50%;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);font-size:.62rem;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  line-height:1;transition:background .15s}
+.board-node-link:hover{background:rgba(120,235,170,.55);color:#0b1310}
+.board-node-del:hover{background:rgba(196,92,92,.85)}
+
+.board-node-body{flex:1;padding:.6rem .7rem;font-size:.83rem;line-height:1.5;
+  color:rgba(255,255,255,.88);outline:none;word-break:break-word;
+  overflow-wrap:anywhere;white-space:pre-wrap;font-family:'DM Sans',sans-serif;
+  cursor:text;overflow:visible}
+.board-node-body:empty::before{content:'Escreva algo...';color:rgba(255,255,255,.28)}
+
+.board-node-rz{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;
+  cursor:nwse-resize;border-radius:0 0 16px 0;touch-action:none;
+  background:linear-gradient(135deg,transparent 45%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.22) 60%,transparent 60%,transparent 72%,rgba(255,255,255,.22) 72%,rgba(255,255,255,.22) 86%,transparent 86%)}
+
+/* "+" de responder — o "follow-up block" do exemplo. Fica encostado embaixo,
+   meio para fora do cartão, e só aparece de fato ao passar perto (evita
+   poluir o quadro quando há muitas notas). */
+.board-node-reply{position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);
+  width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.14);
+  background:#12161550;background:#12161c;color:rgba(255,255,255,.55);
+  font-size:.9rem;line-height:1;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .16s,transform .16s,color .16s,border-color .16s;
+  z-index:3}
+.board-node:hover .board-node-reply{opacity:1}
+.board-node-reply:hover{transform:translateX(-50%) scale(1.15);
+  color:var(--nota-cor);border-color:var(--nota-cor)}
+
 .board-node-img{background:#111;overflow:hidden}
 .board-node-img img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 
@@ -1372,3 +1435,6 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 .borda-item img{max-width:100%;max-height:100%;object-fit:contain}
 .borda-ctrl{display:flex;flex-direction:column;gap:.25rem}
 .borda-ctrl input[type=range]{width:100%}
+
+/* fio de luz bem fino por cima do traço colorido — completa o efeito "cabo" */
+.board-edge-nucleo{stroke-width:1.1;opacity:.9;pointer-events:none}

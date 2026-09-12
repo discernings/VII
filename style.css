@@ -452,26 +452,31 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
   --nota-cor:#7fe0a8;
   position:absolute;left:0;top:0;min-width:150px;min-height:90px;
   border-radius:16px;display:flex;flex-direction:column;overflow:visible;
-  background:linear-gradient(175deg,#14181a,#0a0d0e);
-  border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(175deg,#15191b,#0a0d0e);
+  /* Borda fiel ao exemplo: uma linha bem discreta, quase sem cor — a
+     personalização de cor fica só no pontinho do cabeçalho e num sussurro de
+     brilho, não numa borda colorida chamativa. */
+  border:1px solid rgba(255,255,255,.11);
   box-shadow:
-    0 10px 26px rgba(0,0,0,.55),
-    0 0 0 1px color-mix(in srgb, var(--nota-cor) 22%, transparent) inset,
-    0 0 22px -6px color-mix(in srgb, var(--nota-cor) 55%, transparent);
-  transition:box-shadow .2s;
+    0 10px 24px rgba(0,0,0,.5),
+    0 0 0 1px rgba(255,255,255,.04) inset,
+    0 0 14px -9px color-mix(in srgb, var(--nota-cor) 45%, transparent);
+  transition:box-shadow .2s,border-color .2s;
   contain:layout style
 }
 .board-node:hover{
+  border-color:rgba(255,255,255,.18);
   box-shadow:
-    0 10px 26px rgba(0,0,0,.6),
-    0 0 0 1px color-mix(in srgb, var(--nota-cor) 38%, transparent) inset,
-    0 0 30px -4px color-mix(in srgb, var(--nota-cor) 70%, transparent)
+    0 10px 24px rgba(0,0,0,.55),
+    0 0 0 1px rgba(255,255,255,.06) inset,
+    0 0 20px -7px color-mix(in srgb, var(--nota-cor) 60%, transparent)
 }
 .board-node.dragging{will-change:transform}
 .board-node.dragging,.board-node.resizing{
-  box-shadow:0 18px 44px rgba(0,0,0,.7),
-    0 0 0 1.5px color-mix(in srgb, var(--nota-cor) 55%, transparent) inset,
-    0 0 34px -2px color-mix(in srgb, var(--nota-cor) 80%, transparent)
+  border-color:rgba(255,255,255,.22);
+  box-shadow:0 18px 40px rgba(0,0,0,.65),
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 0 24px -5px color-mix(in srgb, var(--nota-cor) 70%, transparent)
 }
 .board-node.connect-sel{outline:2.5px solid var(--green);outline-offset:3px}
 
@@ -1310,8 +1315,6 @@ body.in-room .vol-wrap{display:flex}
   background:linear-gradient(140deg,var(--green),rgba(120,235,170,.35),var(--green))}
 
 /* ── CONECTORES ───────────────────── */
-.board-edge{stroke-width:2.6}
-.board-edge.sel{stroke-width:3.6}
 /* alça de curvatura mais visível e fácil de pegar */
 .board-edge-handle{r:8;fill:rgba(10,20,14,.92);stroke:rgba(150,255,195,.95);stroke-width:2.4}
 .board-edge-handle.show{opacity:1}
@@ -1365,17 +1368,23 @@ body.in-room .vol-wrap{display:flex}
 /* enquanto escreve numa nota, o controle de zoom sai do caminho */
 body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-events:none}
 
-/* contorno de vidro dos conectores: faixa larga e translúcida por baixo do traço */
-/* Camada de vidro por baixo do traço: faixa larga e translúcida que cria o
-   contorno suave. O estado é marcado por classe (ver board.js) em vez de regra
-   de vizinhança, que não funcionava pela ordem dos elementos no desenho. */
-.board-edge-glass{stroke-width:9;opacity:.45;pointer-events:none;
+/* ── CABO DE LUZ — sem seta, no estilo do exemplo ──
+   Três camadas empilhadas fazem o efeito de tubo luminoso, todas a partir do
+   mesmo desenho da curva (um só cálculo de geometria por conector):
+   1. board-edge-glass: halo largo e suave, dá o "grossor" do tubo
+   2. board-edge: o corpo colorido do cabo
+   3. board-edge-nucleo: fio bem fino e quase branco, o brilho central
+   Sem desfoque de verdade (caro de repintar); o efeito vem só de opacidade e
+   largura em camadas, o mesmo princípio usado no resto do quadro. */
+.board-edge-glass{stroke-width:13;opacity:.4;pointer-events:none;
   transition:opacity .16s,stroke-width .16s}
-.board-edge-glass.hover{opacity:.75;stroke-width:12}
-.board-edge-glass.sel{opacity:.95;stroke-width:14}
-/* traço principal um pouco mais fino, para o vidro aparecer nas bordas */
-.board-edge{stroke-width:2.2}
-.board-edge.sel{stroke-width:3}
+.board-edge-glass.hover{opacity:.6;stroke-width:16}
+.board-edge-glass.sel{opacity:.8;stroke-width:18}
+.board-edge{stroke-width:4;transition:stroke-width .16s}
+.board-edge.sel{stroke-width:5}
+
+/* pontinho de luz nas duas pontas do cabo — substitui a seta */
+.board-edge-socket{pointer-events:none;fill:url(#boardEdgeSocket)}
 
 /* área de toque da alça: invisível e grande, para o dedo acertar sem precisão.
    touch-action:none impede que o gesto vire rolagem no meio do arrasto. */

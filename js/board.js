@@ -762,6 +762,7 @@ function redrawBoardEdges(only){
       path.setAttribute('class','board-edge'); path.setAttribute('fill','none');
       path.setAttribute('stroke','url(#boardEdgeGrad)');
       path.setAttribute('stroke-linecap','round');
+      // SEM seta: o exemplo usa um cabo de luz sem direção marcada, só a curva
       const nucleo=document.createElementNS(NS,'path');   // fio de luz bem fino por cima
       nucleo.setAttribute('class','board-edge-nucleo'); nucleo.setAttribute('fill','none');
       nucleo.setAttribute('stroke','url(#boardEdgeNucleo)');
@@ -787,24 +788,34 @@ function redrawBoardEdges(only){
       dt.setAttribute('font-size','11'); dt.setAttribute('fill','#fff'); dt.textContent='×';
       del.appendChild(dc); del.appendChild(dt);
       del.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); deleteBoardEdge(edge.id); });
+      // pontinho luminoso onde o cabo encosta em cada cartão — no lugar da seta
+      const soqueteA=document.createElementNS(NS,'circle');
+      soqueteA.setAttribute('class','board-edge-socket'); soqueteA.setAttribute('r','5');
+      const soqueteB=document.createElementNS(NS,'circle');
+      soqueteB.setAttribute('class','board-edge-socket'); soqueteB.setAttribute('r','5');
       svg.appendChild(hit); svg.appendChild(glass); svg.appendChild(path);
-      svg.appendChild(nucleo);
+      svg.appendChild(nucleo); svg.appendChild(soqueteA); svg.appendChild(soqueteB);
       svg.appendChild(handleHit); svg.appendChild(handle); svg.appendChild(del);
-      g=_edgeEls[edge.id]={hit,glass,path,nucleo,handle,handleHit,del};
+      g=_edgeEls[edge.id]={hit,glass,path,nucleo,soqueteA,soqueteB,handle,handleHit,del};
     }
-    /* O traço termina um pouco ANTES do destino. Sem isso a linha continuava por
-       baixo da seta e a curva reaparecia depois dela, deixando aquela sobra feia
-       na ponta. Recuamos o fim na direção de onde a curva chega. */
-    const RECUO=11;
-    let fx=geo.p2.x, fy=geo.p2.y;
-    const vx=geo.p2.x-geo.cx, vy=geo.p2.y-geo.cy;
-    const comp=Math.hypot(vx,vy);
-    if(comp>RECUO){ fx-=(vx/comp)*RECUO; fy-=(vy/comp)*RECUO; }
-    const d=`M ${geo.p1.x} ${geo.p1.y} Q ${geo.cx} ${geo.cy} ${fx} ${fy}`;
+    /* As duas pontas recuam um pouco em direção ao meio da curva — é o que dá
+       aquele respiro entre o cartão e o cabo, com o pontinho de luz flutuando
+       bem na borda, como no exemplo. Antes só o fim recuava, e só por causa da
+       seta que existia ali; sem seta nenhuma, faz sentido recuar os dois lados
+       igualmente, por estética, não para esconder nada. */
+    const RECUO=8;
+    function recuar(px,py){
+      const vx=px-geo.cx, vy=py-geo.cy, comp=Math.hypot(vx,vy);
+      if(comp<=RECUO) return {x:px,y:py};
+      return { x:px-(vx/comp)*RECUO, y:py-(vy/comp)*RECUO };
+    }
+    const ini=recuar(geo.p1.x,geo.p1.y), fim=recuar(geo.p2.x,geo.p2.y);
+    const d=`M ${ini.x} ${ini.y} Q ${geo.cx} ${geo.cy} ${fim.x} ${fim.y}`;
     g.path.setAttribute('d',d); g.hit.setAttribute('d',d);
     if(g.glass) g.glass.setAttribute('d',d);
     if(g.nucleo) g.nucleo.setAttribute('d',d);
-    g.path.setAttribute('marker-end','url(#boardArrow)');
+    if(g.soqueteA){ g.soqueteA.setAttribute('cx',ini.x); g.soqueteA.setAttribute('cy',ini.y); }
+    if(g.soqueteB){ g.soqueteB.setAttribute('cx',fim.x); g.soqueteB.setAttribute('cy',fim.y); }
     g.path.classList.toggle('sel',sel);
     /* O estado do vidro é marcado AQUI, não por regra de vizinhança no CSS.
        A camada de vidro é inserida ANTES do traço no desenho, e o seletor de
@@ -826,7 +837,7 @@ function redrawBoardEdges(only){
   });
 }
 function ensureEdgeDefs(svg){
-  if(svg.querySelector('#boardArrow')) return;
+  if(svg.querySelector('#boardEdgeSocket')) return;
   const NS='http://www.w3.org/2000/svg';
   const defs=document.createElementNS(NS,'defs');
   /* Degradê aplicado ao traço. Fica no <defs> e é reaproveitado por TODOS os
@@ -874,15 +885,18 @@ function ensureEdgeDefs(svg){
     glassGrad.appendChild(s);
   });
   defs.appendChild(glassGrad);
-  const m=document.createElementNS(NS,'marker');
-  m.setAttribute('id','boardArrow'); m.setAttribute('viewBox','0 0 10 10');
-  m.setAttribute('refX','9'); m.setAttribute('refY','5');
-  m.setAttribute('markerWidth','6'); m.setAttribute('markerHeight','6');
-  m.setAttribute('orient','auto-start-reverse');
-  const p=document.createElementNS(NS,'path');
-  // ponta CHEIA e opaca: cobre o fim do traço em vez de deixá-lo transparecer
-  p.setAttribute('d','M 0 0 L 10 5 L 0 10 z'); p.setAttribute('fill','#9fe8bd');
-  m.appendChild(p); defs.appendChild(m); svg.appendChild(defs);
+  /* Pontos de conexão: pequenos círculos luminosos onde o cabo encosta em
+     cada cartão — é o "soquete" que aparece no exemplo, no lugar da seta. */
+  const socket=document.createElementNS(NS,'radialGradient');
+  socket.setAttribute('id','boardEdgeSocket');
+  [['0%','rgba(255,255,255,1)'],['45%','rgba(210,230,255,.9)'],['100%','rgba(180,200,255,0)']]
+    .forEach(([off,cor])=>{
+      const s=document.createElementNS(NS,'stop');
+      s.setAttribute('offset',off); s.setAttribute('stop-color',cor);
+      socket.appendChild(s);
+    });
+  defs.appendChild(socket);
+  svg.appendChild(defs);
 }
 /* entortar o conector arrastando a alça */
 function startEdgeBend(e,id){

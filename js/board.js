@@ -788,15 +788,25 @@ function redrawBoardEdges(only){
       dt.setAttribute('font-size','11'); dt.setAttribute('fill','#fff'); dt.textContent='×';
       del.appendChild(dc); del.appendChild(dt);
       del.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); deleteBoardEdge(edge.id); });
-      // pontinho luminoso onde o cabo encosta em cada cartão — no lugar da seta
-      const soqueteA=document.createElementNS(NS,'circle');
-      soqueteA.setAttribute('class','board-edge-socket'); soqueteA.setAttribute('r','5');
-      const soqueteB=document.createElementNS(NS,'circle');
-      soqueteB.setAttribute('class','board-edge-socket'); soqueteB.setAttribute('r','5');
-      svg.appendChild(hit); svg.appendChild(glass); svg.appendChild(path);
-      svg.appendChild(nucleo); svg.appendChild(soqueteA); svg.appendChild(soqueteB);
+      /* Encaixe orgânico nas duas pontas: uma elipse esticada e girada na
+         direção do fio (não um círculo uniforme), pra lembrar aquele "bico"
+         triangular e arredondado do exemplo, onde o brilho parece nascer
+         alongado saindo do cartão, e não só um pingo de luz solto. */
+      const soqueteA=document.createElementNS(NS,'ellipse');
+      soqueteA.setAttribute('class','board-edge-socket'); soqueteA.setAttribute('rx','9'); soqueteA.setAttribute('ry','3.4');
+      const soqueteB=document.createElementNS(NS,'ellipse');
+      soqueteB.setAttribute('class','board-edge-socket'); soqueteB.setAttribute('rx','9'); soqueteB.setAttribute('ry','3.4');
+      // duas linhas finas extras, paralelas à principal — o "feixe de fios"
+      const fio2=document.createElementNS(NS,'path');
+      fio2.setAttribute('class','board-edge-fio'); fio2.setAttribute('fill','none');
+      fio2.setAttribute('stroke','url(#boardEdgeGlass)'); fio2.setAttribute('stroke-linecap','round');
+      const fio3=document.createElementNS(NS,'path');
+      fio3.setAttribute('class','board-edge-fio board-edge-fio2'); fio3.setAttribute('fill','none');
+      fio3.setAttribute('stroke','url(#boardEdgeGlass)'); fio3.setAttribute('stroke-linecap','round');
+      svg.appendChild(hit); svg.appendChild(glass); svg.appendChild(fio2); svg.appendChild(fio3);
+      svg.appendChild(path); svg.appendChild(nucleo); svg.appendChild(soqueteA); svg.appendChild(soqueteB);
       svg.appendChild(handleHit); svg.appendChild(handle); svg.appendChild(del);
-      g=_edgeEls[edge.id]={hit,glass,path,nucleo,soqueteA,soqueteB,handle,handleHit,del};
+      g=_edgeEls[edge.id]={hit,glass,path,nucleo,fio2,fio3,soqueteA,soqueteB,handle,handleHit,del};
     }
     /* As duas pontas recuam um pouco em direção ao meio da curva — é o que dá
        aquele respiro entre o cartão e o cabo, com o pontinho de luz flutuando
@@ -810,12 +820,42 @@ function redrawBoardEdges(only){
       return { x:px-(vx/comp)*RECUO, y:py-(vy/comp)*RECUO };
     }
     const ini=recuar(geo.p1.x,geo.p1.y), fim=recuar(geo.p2.x,geo.p2.y);
-    const d=`M ${ini.x} ${ini.y} Q ${geo.cx} ${geo.cy} ${fim.x} ${fim.y}`;
-    g.path.setAttribute('d',d); g.hit.setAttribute('d',d);
-    if(g.glass) g.glass.setAttribute('d',d);
-    if(g.nucleo) g.nucleo.setAttribute('d',d);
-    if(g.soqueteA){ g.soqueteA.setAttribute('cx',ini.x); g.soqueteA.setAttribute('cy',ini.y); }
-    if(g.soqueteB){ g.soqueteB.setAttribute('cx',fim.x); g.soqueteB.setAttribute('cy',fim.y); }
+
+    /* Curva assimétrica em vez de um arco simétrico: sai quase na horizontal de
+       cada cartão e só depois se inclina na direção do outro lado, como um fio
+       real penderia — não uma curva perfeita e simétrica de manual de geometria.
+       Uma bézier cúbica dá esse controle; a quadrática antiga não. */
+    function curvaAssimetrica(p1,p2,ctrl,deslocPerp){
+      const dx=p2.x-p1.x, dy=p2.y-p1.y, comp=Math.hypot(dx,dy)||1;
+      const nx=-dy/comp, ny=dx/comp;           // perpendicular unitário
+      const off=deslocPerp||0;
+      const P1={x:p1.x+nx*off, y:p1.y+ny*off};
+      const P2={x:p2.x+nx*off, y:p2.y+ny*off};
+      const C ={x:ctrl.x+nx*off, y:ctrl.y+ny*off};
+      // sai quase reto (pouco de C entra no eixo Y) e só curva de verdade depois
+      const c1={x:P1.x+(C.x-P1.x)*0.55, y:P1.y+(C.y-P1.y)*0.15};
+      const c2={x:P2.x+(C.x-P2.x)*0.55, y:P2.y+(C.y-P2.y)*0.15};
+      return { d:`M ${P1.x} ${P1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${P2.x} ${P2.y}`, c1, c2 };
+    }
+    const principal=curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy},0);
+    g.path.setAttribute('d',principal.d); g.hit.setAttribute('d',principal.d);
+    if(g.glass)  g.glass.setAttribute('d',principal.d);
+    if(g.nucleo) g.nucleo.setAttribute('d',principal.d);
+    // duas linhas finas extras, deslocadas pra cada lado — o "feixe de fios"
+    if(g.fio2) g.fio2.setAttribute('d', curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy}, 6).d);
+    if(g.fio3) g.fio3.setAttribute('d', curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy},-5).d);
+
+    // orienta cada encaixe na direção real do fio que sai dele (ângulo da tangente)
+    if(g.soqueteA){
+      const ang=Math.atan2(principal.c1.y-ini.y, principal.c1.x-ini.x)*180/Math.PI;
+      g.soqueteA.setAttribute('cx',ini.x); g.soqueteA.setAttribute('cy',ini.y);
+      g.soqueteA.setAttribute('transform',`rotate(${ang} ${ini.x} ${ini.y})`);
+    }
+    if(g.soqueteB){
+      const ang=Math.atan2(fim.y-principal.c2.y, fim.x-principal.c2.x)*180/Math.PI;
+      g.soqueteB.setAttribute('cx',fim.x); g.soqueteB.setAttribute('cy',fim.y);
+      g.soqueteB.setAttribute('transform',`rotate(${ang} ${fim.x} ${fim.y})`);
+    }
     g.path.classList.toggle('sel',sel);
     /* O estado do vidro é marcado AQUI, não por regra de vizinhança no CSS.
        A camada de vidro é inserida ANTES do traço no desenho, e o seletor de
@@ -876,10 +916,9 @@ function ensureEdgeDefs(svg){
   glassGrad.setAttribute('gradientUnits','userSpaceOnUse');
   glassGrad.setAttribute('x1','0'); glassGrad.setAttribute('y1','0');
   glassGrad.setAttribute('x2','0'); glassGrad.setAttribute('y2','1200');
-  [['0%','rgba(255,255,255,.34)'],
-   ['40%','rgba(190,225,255,.22)'],
-   ['70%','rgba(200,220,255,.2)'],
-   ['100%','rgba(210,200,255,.24)']].forEach(([off,cor])=>{
+  [['0%','rgba(255,255,255,.28)'],
+   ['50%','rgba(240,240,242,.16)'],
+   ['100%','rgba(225,225,230,.2)']].forEach(([off,cor])=>{
     const s=document.createElementNS(NS,'stop');
     s.setAttribute('offset',off); s.setAttribute('stop-color',cor);
     glassGrad.appendChild(s);
@@ -889,7 +928,7 @@ function ensureEdgeDefs(svg){
      cada cartão — é o "soquete" que aparece no exemplo, no lugar da seta. */
   const socket=document.createElementNS(NS,'radialGradient');
   socket.setAttribute('id','boardEdgeSocket');
-  [['0%','rgba(255,255,255,1)'],['45%','rgba(210,230,255,.9)'],['100%','rgba(180,200,255,0)']]
+  [['0%','rgba(255,255,255,1)'],['45%','rgba(240,240,245,.92)'],['100%','rgba(220,220,230,0)']]
     .forEach(([off,cor])=>{
       const s=document.createElementNS(NS,'stop');
       s.setAttribute('offset',off); s.setAttribute('stop-color',cor);

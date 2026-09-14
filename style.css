@@ -10,8 +10,6 @@
  */
 
 @import url("./style.base.css");
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="style-redesign.css">
 
 :root {
   --void: #000000;

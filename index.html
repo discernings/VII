@@ -460,8 +460,8 @@
     <h2><span class="lf-ico" style="font-size:1.1em">𐂪</span> Perfil</h2>
     <div class="ssec"><h3 data-i18n="nav.profile">Perfil</h3>
       <div class="spr">
-        <div style="display:flex;flex-direction:column;gap:.5rem;width:140px">
-          <div class="avatar-frame-wrap" id="avatarFrameWrap" style="position:relative;width:58px;height:58px;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;gap:.5rem;width:190px">
+          <div class="avatar-frame-wrap" id="avatarFrameWrap" style="position:relative;width:108px;height:108px;flex-shrink:0;cursor:grab">
             <div class="sphoto" id="sphoto"><span class="sinit" id="sinit">A</span><input type="file" id="spFile" accept="image/*" onchange="handleSPhoto(this)"></div>
           </div>
           <div class="sbanner" id="sbanner"><span class="sb-ph" data-i18n="f.banner">Banner</span><input type="file" id="spBannerFile" accept="image/*" onchange="handleSBanner(this)"></div>
@@ -471,17 +471,9 @@
           <div class="srow"><span class="slbl" data-i18n="f.email">Email</span><input class="si" type="email" id="sEm" placeholder="email@exemplo.com"></div>
           <div class="srow"><span class="slbl">Usuário (único)</span><input class="si" type="text" id="sUname" placeholder="@usuario"></div>
           <div class="srow"><span class="slbl" data-i18n="f.bio">Biografia</span><textarea class="si" id="sBio" placeholder="Fale sobre você" style="height:60px"></textarea></div>
-          <div style="display:flex;gap:.4rem;align-items:center">
-            <div style="flex:1">
-              <div class="slbl">Moldura: escala</div>
-              <input type="range" id="frameScale" min="0.5" max="2" step="0.01" value="1" oninput="updateFramePreview()">
-            </div>
-            <div style="width:110px">
-              <div class="slbl">X</div>
-              <input type="range" id="frameX" min="-100" max="100" step="1" value="0" oninput="updateFramePreview()">
-              <div class="slbl">Y</div>
-              <input type="range" id="frameY" min="-100" max="100" step="1" value="0" oninput="updateFramePreview()">
-            </div>
+          <div class="gesto-dica">
+            <span>Arraste a moldura para mover · belisque com dois dedos (ou use a roda do mouse) para redimensionar</span>
+            <span class="gesto-pct" id="frameEscalaVal">100%</span>
           </div>
         </div>
       </div>
@@ -579,13 +571,14 @@
       </div>
       <div class="borda-galeria" id="bordaGaleria"></div>
       <div class="borda-ctrl">
-        <label class="slbl">Tamanho <span id="bordaEscalaVal">100%</span></label>
-        <input type="range" id="bordaEscala" min="40" max="200" value="100" oninput="bordaAjuste()">
-        <label class="slbl">Posição horizontal</label>
-        <input type="range" id="bordaX" min="-100" max="100" value="0" oninput="bordaAjuste()">
-        <label class="slbl">Posição vertical</label>
-        <input type="range" id="bordaY" min="-100" max="100" value="0" oninput="bordaAjuste()">
-        <button class="rl-btn" onclick="bordaRemover()">remover esta borda</button>
+        <div class="gesto-dica">
+          <span>Arraste a imagem da borda ali em cima para mover · belisque com dois dedos (ou use a roda do mouse) para redimensionar</span>
+        </div>
+        <div class="borda-pcts">
+          <span>Cima: <b class="gesto-pct" id="bordaEscalaTopoVal">100%</b></span>
+          <span>Baixo: <b class="gesto-pct" id="bordaEscalaBaixoVal">100%</b></span>
+        </div>
+        <button class="rl-btn" onclick="bordaRemover()">remover a borda selecionada</button>
       </div>
     </div>
 

@@ -692,11 +692,14 @@ input[type="range"]::-moz-range-track{height:4px;border-radius:99px;background:v
 .tgl input:checked+.tgl-track{background:var(--gg);border-color:var(--green)}
 .tgl input:checked+.tgl-track+.tgl-knob{transform:translateX(19px);background:var(--green)}
 .spr{display:flex;align-items:flex-start;gap:.8rem;margin-bottom:.9rem}
-.sphoto{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--green),#166534);border:2px solid var(--ridge);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:transform .25s,border-color .25s;position:relative;flex-shrink:0}
+/* Aumentado de 58px para 108px: um alvo de toque pequeno demais torna o gesto
+   de arrastar/beliscar impreciso e frustrante — precisa de espaço de verdade
+   pra seguer com o dedo. */
+.sphoto{width:108px;height:108px;border-radius:50%;background:linear-gradient(135deg,var(--green),#166534);border:2px solid var(--ridge);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:transform .25s,border-color .25s;position:relative;flex-shrink:0}
 .sphoto:hover{transform:scale(1.06);border-color:var(--gold)}
 .sphoto img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .sphoto input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.sinit{font-family:'Cinzel',serif;font-size:1.25rem;font-weight:700;color:var(--bone)}
+.sinit{font-family:'Cinzel',serif;font-size:2.1rem;font-weight:700;color:var(--bone)}
 /* ── Crop/zoom de foto — evita que o upload corte partes importantes da imagem ── */
 #cropStage{width:240px;height:240px;margin:0 auto;border-radius:50%;overflow:hidden;position:relative;background:#0c0c10;cursor:grab;touch-action:none;border:2px solid var(--ridge);box-shadow:0 4px 24px rgba(0,0,0,.4)}
 #cropStage.dragging{cursor:grabbing}
@@ -1449,3 +1452,20 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 
 /* fio de luz bem fino por cima do traço colorido — completa o efeito "cabo" */
 .board-edge-nucleo{stroke-width:1.1;opacity:.9;pointer-events:none}
+
+/* ── DICAS DE GESTO (moldura e borda) ───────────────────── */
+.gesto-dica{display:flex;flex-direction:column;gap:.3rem;font-size:.66rem;
+  color:var(--dust);line-height:1.5;padding:.5rem .1rem}
+.gesto-pct{font-size:.72rem;color:var(--bone);font-weight:600;
+  font-variant-numeric:tabular-nums;align-self:flex-start}
+.borda-pcts{display:flex;gap:1rem;font-size:.72rem;color:var(--ash);margin:.3rem 0 .5rem}
+.borda-pcts b{color:var(--bone);font-variant-numeric:tabular-nums}
+/* As bordas usam .perfil-borda em dois lugares: no perfil público (decorativa,
+   pointer-events:none — ninguém deve conseguir "tocar" a borda de outra
+   pessoa) e aqui na pré-visualização (onde precisa responder ao toque pra
+   valer). Reativa o toque só dentro da prévia. */
+#bpvCard .perfil-borda{pointer-events:auto}
+/* a moldura mostra que dá pra segurar e mexer, sem precisar de instrução visual a mais */
+#avatarFrameWrap:active{cursor:grabbing}
+#bpvBordaTopo,#bpvBordaBaixo{cursor:grab;touch-action:none}
+#bpvBordaTopo:active,#bpvBordaBaixo:active{cursor:grabbing}

@@ -792,21 +792,28 @@ function redrawBoardEdges(only){
          direção do fio (não um círculo uniforme), pra lembrar aquele "bico"
          triangular e arredondado do exemplo, onde o brilho parece nascer
          alongado saindo do cartão, e não só um pingo de luz solto. */
-      const soqueteA=document.createElementNS(NS,'ellipse');
-      soqueteA.setAttribute('class','board-edge-socket'); soqueteA.setAttribute('rx','9'); soqueteA.setAttribute('ry','3.4');
-      const soqueteB=document.createElementNS(NS,'ellipse');
-      soqueteB.setAttribute('class','board-edge-socket'); soqueteB.setAttribute('rx','9'); soqueteB.setAttribute('ry','3.4');
-      // duas linhas finas extras, paralelas à principal — o "feixe de fios"
-      const fio2=document.createElementNS(NS,'path');
-      fio2.setAttribute('class','board-edge-fio'); fio2.setAttribute('fill','none');
-      fio2.setAttribute('stroke','url(#boardEdgeGlass)'); fio2.setAttribute('stroke-linecap','round');
-      const fio3=document.createElementNS(NS,'path');
-      fio3.setAttribute('class','board-edge-fio board-edge-fio2'); fio3.setAttribute('fill','none');
-      fio3.setAttribute('stroke','url(#boardEdgeGlass)'); fio3.setAttribute('stroke-linecap','round');
-      svg.appendChild(hit); svg.appendChild(glass); svg.appendChild(fio2); svg.appendChild(fio3);
-      svg.appendChild(path); svg.appendChild(nucleo); svg.appendChild(soqueteA); svg.appendChild(soqueteB);
+      // ponta em forma de cometa (path desenhado à mão), não mais uma elipse
+      // esticada — era isso que parecia "uma bola puxada"
+      const soqueteA=document.createElementNS(NS,'path');
+      soqueteA.setAttribute('class','board-edge-socket');
+      const soqueteB=document.createElementNS(NS,'path');
+      soqueteB.setAttribute('class','board-edge-socket');
+      /* Duas fitas escuras e finas, trançadas uma na outra (fase oposta) —
+         é isso que dá a textura de "veia"/cabo trançado do exemplo, no lugar
+         de duas linhas simplesmente paralelas. */
+      const trancaA=document.createElementNS(NS,'path');
+      trancaA.setAttribute('class','board-edge-tranca'); trancaA.setAttribute('fill','none');
+      const trancaB=document.createElementNS(NS,'path');
+      trancaB.setAttribute('class','board-edge-tranca'); trancaB.setAttribute('fill','none');
+      // pulso de luz que percorre o cabo continuamente — "uma luz passando como veia"
+      const pulso=document.createElementNS(NS,'path');
+      pulso.setAttribute('class','board-edge-pulso'); pulso.setAttribute('fill','none');
+      svg.appendChild(hit); svg.appendChild(glass);
+      svg.appendChild(path); svg.appendChild(nucleo);
+      svg.appendChild(trancaA); svg.appendChild(trancaB); svg.appendChild(pulso);
+      svg.appendChild(soqueteA); svg.appendChild(soqueteB);
       svg.appendChild(handleHit); svg.appendChild(handle); svg.appendChild(del);
-      g=_edgeEls[edge.id]={hit,glass,path,nucleo,fio2,fio3,soqueteA,soqueteB,handle,handleHit,del};
+      g=_edgeEls[edge.id]={hit,glass,path,nucleo,trancaA,trancaB,pulso,soqueteA,soqueteB,handle,handleHit,del};
     }
     /* As duas pontas recuam um pouco em direção ao meio da curva — é o que dá
        aquele respiro entre o cartão e o cabo, com o pontinho de luz flutuando
@@ -821,41 +828,71 @@ function redrawBoardEdges(only){
     }
     const ini=recuar(geo.p1.x,geo.p1.y), fim=recuar(geo.p2.x,geo.p2.y);
 
-    /* Curva assimétrica em vez de um arco simétrico: sai quase na horizontal de
-       cada cartão e só depois se inclina na direção do outro lado, como um fio
-       real penderia — não uma curva perfeita e simétrica de manual de geometria.
-       Uma bézier cúbica dá esse controle; a quadrática antiga não. */
-    function curvaAssimetrica(p1,p2,ctrl,deslocPerp){
-      const dx=p2.x-p1.x, dy=p2.y-p1.y, comp=Math.hypot(dx,dy)||1;
-      const nx=-dy/comp, ny=dx/comp;           // perpendicular unitário
-      const off=deslocPerp||0;
-      const P1={x:p1.x+nx*off, y:p1.y+ny*off};
-      const P2={x:p2.x+nx*off, y:p2.y+ny*off};
-      const C ={x:ctrl.x+nx*off, y:ctrl.y+ny*off};
-      // sai quase reto (pouco de C entra no eixo Y) e só curva de verdade depois
-      const c1={x:P1.x+(C.x-P1.x)*0.55, y:P1.y+(C.y-P1.y)*0.15};
-      const c2={x:P2.x+(C.x-P2.x)*0.55, y:P2.y+(C.y-P2.y)*0.15};
-      return { d:`M ${P1.x} ${P1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${P2.x} ${P2.y}`, c1, c2 };
+    /* A "espinha" do cabo: sai quase na horizontal de cada cartão e só se
+       inclina de verdade depois, como um fio real penderia — não um arco
+       simétrico e redondo de manual de geometria. O teto de curvatura (bem
+       mais apertado agora) evita que isto vire aquele laço grande de antes. */
+    function espinha(p1,p2,ctrl){
+      const c1={x:p1.x+(ctrl.x-p1.x)*0.55, y:p1.y+(ctrl.y-p1.y)*0.15};
+      const c2={x:p2.x+(ctrl.x-p2.x)*0.55, y:p2.y+(ctrl.y-p2.y)*0.15};
+      return { P0:p1,P1:c1,P2:c2,P3:p2 };
     }
-    const principal=curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy},0);
-    g.path.setAttribute('d',principal.d); g.hit.setAttribute('d',principal.d);
-    if(g.glass)  g.glass.setAttribute('d',principal.d);
-    if(g.nucleo) g.nucleo.setAttribute('d',principal.d);
-    // duas linhas finas extras, deslocadas pra cada lado — o "feixe de fios"
-    if(g.fio2) g.fio2.setAttribute('d', curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy}, 6).d);
-    if(g.fio3) g.fio3.setAttribute('d', curvaAssimetrica(ini,fim,{x:geo.cx,y:geo.cy},-5).d);
+    function pontoCubica(P0,P1,P2,P3,t){
+      const mt=1-t;
+      const x = mt*mt*mt*P0.x + 3*mt*mt*t*P1.x + 3*mt*t*t*P2.x + t*t*t*P3.x;
+      const y = mt*mt*mt*P0.y + 3*mt*mt*t*P1.y + 3*mt*t*t*P2.y + t*t*t*P3.y;
+      const tx = 3*mt*mt*(P1.x-P0.x) + 6*mt*t*(P2.x-P1.x) + 3*t*t*(P3.x-P2.x);
+      const ty = 3*mt*mt*(P1.y-P0.y) + 6*mt*t*(P2.y-P1.y) + 3*t*t*(P3.y-P2.y);
+      return {x,y,tx,ty};
+    }
+    /* Constrói uma fita que se afasta e volta pra espinha, sempre fechando bem
+       nas pontas (envelope=0 em t=0 e t=1) e abrindo no meio (pico em t=0.5) —
+       é o "abre no meio, fecha nas pontas" do exemplo. Duas fitas com fase
+       oposta cruzam uma a outra ao longo do caminho, formando a trança. */
+    function fitaTrancada(esp,amplitude,voltas,fase){
+      const N=22; let d='';
+      for(let i=0;i<=N;i++){
+        const t=i/N;
+        const p=pontoCubica(esp.P0,esp.P1,esp.P2,esp.P3,t);
+        const comp=Math.hypot(p.tx,p.ty)||1;
+        const nx=-p.ty/comp, ny=p.tx/comp;                  // perpendicular à tangente local
+        const envelope=Math.sin(t*Math.PI);                 // 0 nas pontas, pico no meio
+        const off=amplitude*envelope*Math.sin(t*voltas*Math.PI*2+fase);
+        const x=p.x+nx*off, y=p.y+ny*off;
+        d += (i===0?'M ':'L ')+x.toFixed(1)+' '+y.toFixed(1)+' ';
+      }
+      return d;
+    }
+    const esp=espinha(ini,fim,{x:geo.cx,y:geo.cy});
+    const dEspinha=`M ${esp.P0.x} ${esp.P0.y} C ${esp.P1.x} ${esp.P1.y} ${esp.P2.x} ${esp.P2.y} ${esp.P3.x} ${esp.P3.y}`;
+    g.path.setAttribute('d',dEspinha); g.hit.setAttribute('d',dEspinha);
+    if(g.glass)  g.glass.setAttribute('d',dEspinha);
+    if(g.nucleo) g.nucleo.setAttribute('d',dEspinha);
+    if(g.pulso)  g.pulso.setAttribute('d',dEspinha);
+    // as duas fitas trançadas, fase invertida uma da outra — se cruzam ao longo do fio
+    if(g.trancaA) g.trancaA.setAttribute('d', fitaTrancada(esp,9,1.4,0));
+    if(g.trancaB) g.trancaB.setAttribute('d', fitaTrancada(esp,9,1.4,Math.PI));
 
-    // orienta cada encaixe na direção real do fio que sai dele (ângulo da tangente)
-    if(g.soqueteA){
-      const ang=Math.atan2(principal.c1.y-ini.y, principal.c1.x-ini.x)*180/Math.PI;
-      g.soqueteA.setAttribute('cx',ini.x); g.soqueteA.setAttribute('cy',ini.y);
-      g.soqueteA.setAttribute('transform',`rotate(${ang} ${ini.x} ${ini.y})`);
+    /* Ponta em forma de cometa: uma cabeça redonda e brilhante bem no ponto
+       onde o fio começa, com uma cauda curta que afina voltando na direção da
+       borda real do cartão (fechando visualmente o pequeno respiro do recuo).
+       Antes era uma elipse esticada — lida de longe como uma "bola puxada",
+       sem parecer que nasce do cartão de verdade. Um path desenhado à mão dá
+       controle sobre a cabeça e a cauda separadamente. */
+    function cometa(cabeca,paraCartao,raio){
+      const dx=paraCartao.x-cabeca.x, dy=paraCartao.y-cabeca.y;
+      const comp=Math.hypot(dx,dy)||1;
+      const tx=dx/comp, ty=dy/comp;              // direção da cauda (rumo ao cartão)
+      const nx=-ty, ny=tx;                       // perpendicular (ombros da cabeça)
+      const cauda={x:cabeca.x+tx*Math.max(comp,raio*1.8), y:cabeca.y+ty*Math.max(comp,raio*1.8)};
+      const s1={x:cabeca.x+nx*raio, y:cabeca.y+ny*raio};
+      const s2={x:cabeca.x-nx*raio, y:cabeca.y-ny*raio};
+      // ombro -> afina até a ponta da cauda -> volta afinando -> arco fecha a cabeça redonda
+      return `M ${s1.x} ${s1.y} Q ${cauda.x} ${cauda.y} ${s2.x} ${s2.y} `+
+             `A ${raio} ${raio} 0 1 0 ${s1.x} ${s1.y} Z`;
     }
-    if(g.soqueteB){
-      const ang=Math.atan2(fim.y-principal.c2.y, fim.x-principal.c2.x)*180/Math.PI;
-      g.soqueteB.setAttribute('cx',fim.x); g.soqueteB.setAttribute('cy',fim.y);
-      g.soqueteB.setAttribute('transform',`rotate(${ang} ${fim.x} ${fim.y})`);
-    }
+    if(g.soqueteA) g.soqueteA.setAttribute('d', cometa(ini, geo.p1, 4.6));
+    if(g.soqueteB) g.soqueteB.setAttribute('d', cometa(fim, geo.p2, 4.6));
     g.path.classList.toggle('sel',sel);
     /* O estado do vidro é marcado AQUI, não por regra de vizinhança no CSS.
        A camada de vidro é inserida ANTES do traço no desenho, e o seletor de
@@ -963,7 +1000,10 @@ function startEdgeBend(e,id){
     let bx = cx - geo.mx, by = cy - geo.my;
 
     const distNos = Math.hypot(geo.p2.x-geo.p1.x, geo.p2.y-geo.p1.y) || 1;
-    const tetoCurva = Math.max(160, distNos*1.2);
+/* Teto bem mais apertado que antes. O exemplo mostra um cabo quase reto, só
+       ondulando de leve — nunca um arco grande e redondo como um parêntese. Um
+       teto generoso permitia esse laço enorme mesmo com pouco arrasto na alça. */
+    const tetoCurva = Math.max(70, distNos*0.5);
     const forca = Math.hypot(bx,by);
     if(forca > tetoCurva){
       const k = tetoCurva/forca;

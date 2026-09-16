@@ -1,1 +1,191 @@
-.
+name: Gerar APK
+
+# Roda quando você aperta o botão na aba Actions, e também a cada push na main.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Sem isto o token do GitHub vem só com permissão de LEITURA, e a etapa de
+    # publicar o Release falha com "403 Resource not accessible by integration".
+    # O APK compila normalmente; é só a publicação que é barrada.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # CORRIGIDO — sem isto o build parava aqui, antes de qualquer etapa
+          # nossa rodar. Por padrão esta ação tenta instalar também o pacote
+          # "tools", que é a ferramenta antiga do Android SDK, aposentada há
+          # anos; o Google removeu esse pacote do repositório do SDK, e a
+          # ação nunca foi atualizada para parar de pedir por ele. O runner do
+          # GitHub já vem com o SDK necessário pré-instalado (dá pra ver no
+          # próprio log: "Found preinstalled sdkmanager") — só precisamos
+          # garantir o platform-tools (onde mora o adb), que é o único pacote
+          # desta etapa que o resto do workflow realmente usa.
+          packages: 'platform-tools'
+
+      # O Capacitor copia os arquivos do site a partir de uma pasta só dele.
+      # Sem isso ele tentaria copiar o repositório inteiro (incluindo node_modules
+      # e a própria pasta android), o que quebra o build.
+      - name: Separar os arquivos do site
+        run: |
+          mkdir -p www
+          cp index.html www/
+          cp style.css  www/
+          cp -r js       www/
+          # confere que a ponte do navegador embutido foi junto
+          if [ -f www/js/theater.js ]; then
+            echo "navegador embutido: theater.js incluído"
+          else
+            echo "AVISO: js/theater.js não está no repositório — o botão do navegador vai avisar que o plugin falta"
+          fi
+          # se você tiver imagens/fontes locais, acrescente aqui. Ex:
+          # cp -r assets www/ 2>/dev/null || true
+
+      - name: Instalar o Capacitor
+        run: |
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+
+          # ERRO CORRIGIDO: o pacote era instalado para o build, mas a biblioteca
+          # JavaScript nunca ia junto para dentro do app. Sem ela, window.Capacitor
+          # existe (vem da parte nativa) mas fica sem registerPlugin — era esse o
+          # aviso "Versão do Capacitor incompatível no APK".
+          if [ -f node_modules/@capacitor/core/dist/capacitor.js ]; then
+            cp node_modules/@capacitor/core/dist/capacitor.js www/js/capacitor.js
+            echo "biblioteca do Capacitor incluída no app"
+          else
+            echo "AVISO: não encontrei dist/capacitor.js"
+            ls node_modules/@capacitor/core/dist/ || true
+          fi
+
+      - name: Montar o projeto Android
+        run: |
+          npx cap add android
+
+      # Gera o ícone em TODOS os tamanhos que o Android exige, a partir de uma
+      # imagem só (assets/icon.png). Se você não enviar a imagem, o build segue
+      # normalmente com o ícone padrão do Capacitor.
+      # Cria UMA VEZ a chave de assinatura e a guarda no repositório. Sem isso,
+      # cada build sai com uma assinatura diferente e o Android recusa instalar a
+      # atualização por cima da versão anterior ("App not installed").
+      - name: Preparar assinatura fixa
+        run: |
+          if [ ! -f keystore/there.jks ]; then
+            echo "gerando a chave de assinatura (só acontece nesta primeira vez)..."
+            mkdir -p keystore
+            keytool -genkeypair -v \
+              -keystore keystore/there.jks \
+              -alias there -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass therefm -keypass therefm \
+              -dname "CN=there.fm, OU=app, O=there.fm, L=-, S=-, C=BR"
+
+            git config user.name  "github-actions"
+            git config user.email "github-actions@github.com"
+            git add -f keystore/there.jks
+            git commit -m "Adiciona chave de assinatura do app"
+            git push
+            echo "chave criada e salva no repositório"
+          else
+            echo "chave de assinatura já existe"
+          fi
+
+      - name: Gerar ícone do app
+        env:
+          # Para trocar o ícone depois, é só mudar este endereço — ou enviar um
+          # arquivo em assets/icon.png, que tem prioridade sobre ele.
+          ICON_URL: "https://i.postimg.cc/HLY9Xkyt/Tumblr-l-16411380525183.png"
+        run: |
+          # Usamos Python em vez do ImageMagick: os runners novos do Ubuntu não
+          # trazem mais o comando 'convert' (era esse o erro 'command not found').
+          pip install --quiet Pillow
+          python3 native/make_icon.py
+          if [ -f assets/icon.png ]; then
+            npm install --no-save @capacitor/assets
+            npx capacitor-assets generate --android || echo 'aviso do gerador ignorado'
+            echo "ícone aplicado"
+          else
+            echo "sem ícone personalizado — usando o padrão"
+          fi
+
+      # O 'cap add android' regenera a pasta android/ do zero a cada build, então
+      # o plugin nativo e as permissões precisam ser aplicados DEPOIS dele —
+      # senão seriam apagados.
+      # O 'cap add android' regenera a pasta android/ do zero a cada build, então
+      # o plugin nativo e as permissões precisam ser aplicados DEPOIS dele —
+      # senão seriam apagados.
+      - name: Instalar o plugin do navegador embutido
+        run: |
+          # Falha cedo e com mensagem clara se os arquivos nativos não estiverem
+          # no repositório — antes isso passava batido e o APK saía sem o
+          # navegador, sem nenhum aviso.
+          faltando=0
+          for f in native/TheaterPlugin.java native/MainActivity.java native/patch_android.py \
+                   native/AdBlock.java native/PlaybackService.java; do
+            if [ ! -f "$f" ]; then echo "FALTANDO: $f"; faltando=1; fi
+          done
+          if [ "$faltando" = "1" ]; then
+            echo "::error::Arquivos do navegador embutido ausentes. Crie-os no repositório."
+            exit 1
+          fi
+          # Confere se o plugin no repositório é a versão nova. Já aconteceu de o
+          # JavaScript ser atualizado e o Java não, gerando um APK que detecta o
+          # vídeo mas não consegue encaixá-lo no card — sem nenhum aviso.
+          if grep -q "public void setBounds" native/TheaterPlugin.java; then
+            echo "plugin: versão 2 (vídeo no card disponível)"
+          else
+            echo "::error::native/TheaterPlugin.java está desatualizado — falta setBounds/isolate. Atualize o arquivo no repositório."
+            exit 1
+          fi
+
+          python3 native/patch_android.py
+          npx cap sync android
+
+      - name: Compilar o APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Renomear o arquivo
+        run: |
+          mkdir -p saida
+          cp android/app/build/outputs/apk/debug/app-debug.apk saida/there-fm.apk
+
+      # Fica guardado na aba Actions (vem dentro de um .zip)
+      - name: Guardar o APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: there-fm-apk
+          path: saida/there-fm.apk
+
+      # Publica também como Release — este é o jeito fácil de baixar no celular,
+      # porque vira um link direto para o .apk, sem precisar descompactar nada.
+      - name: Publicar para download direto
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: there.fm APK ${{ github.run_number }}
+          files: saida/there-fm.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

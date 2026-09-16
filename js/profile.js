@@ -124,23 +124,118 @@ function cropConfirm(){
     $('cropModal').classList.remove('on'); $('cropStage').classList.remove('rect'); cropState=null; cropTarget=null;
   },mime,0.92);
 }
+/* ══════════════════════════════════════════════════════════════════
+   ARRASTAR E BELISCAR — move e redimensiona segurando direto na moldura ou na
+   borda, sem barra deslizante. Um dedo move, dois dedos beliscam pra
+   redimensionar (funciona com o dedo no celular e com o mouse — a roda do
+   mouse também escala, como atalho no computador).
+   ══════════════════════════════════════════════════════════════════ */
+function limitar(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function attachGesto(el,opts){
+  if(!el||el.dataset.gestoPronto) return;
+  el.dataset.gestoPronto='1';
+  const pointers=new Map();
+  let modo=null, capturado=false, startDist=1, startScale=1, startX=0, startY=0, startPX=0, startPY=0;
+
+  /* IMPORTANTE: a captura do toque só acontece DEPOIS de confirmar que é um
+     arrasto de verdade (movimento além de um limiar mínimo), nunca no
+     momento do toque em si. Isso existe porque avatarFrameWrap contém um
+     <input type="file"> invisível por baixo (é assim que tocar no avatar abre
+     a galeria de fotos) — capturar o ponteiro de imediato poderia impedir
+     esse clique nativo de disparar em alguns navegadores. Um toque parado
+     continua funcionando exatamente como antes; só um arrasto de verdade
+     assume o gesto. */
+  el.addEventListener('pointerdown',e=>{
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===1){
+      modo='talvez-arrastar';
+      startX=opts.getX(); startY=opts.getY();
+      startPX=e.clientX; startPY=e.clientY;
+    }else if(pointers.size===2){
+      // dois dedos já é inequívoco: não tem como ser um toque de abrir a galeria
+      pointers.forEach((_,id)=>{ try{ el.setPointerCapture(id); }catch(_){} });
+      capturado=true; modo='pinca';
+      const pts=[...pointers.values()];
+      startDist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1;
+      startScale=opts.getScale();
+    }
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(modo==='talvez-arrastar'&&pointers.size===1){
+      const dx=e.clientX-startPX, dy=e.clientY-startPY;
+      if(!capturado && (Math.abs(dx)>6||Math.abs(dy)>6)){
+        try{ el.setPointerCapture(e.pointerId); }catch(_){}
+        capturado=true; el.style.touchAction='none'; modo='arrastar';
+      }
+      if(modo==='arrastar'){
+        opts.setX(limitar(startX+dx*(opts.fatorX||1),-opts.maxOffset,opts.maxOffset));
+        opts.setY(limitar(startY+dy*(opts.fatorY||1),-opts.maxOffset,opts.maxOffset));
+        opts.onChange();
+      }
+    }else if(modo==='pinca'&&pointers.size===2){
+      const pts=[...pointers.values()];
+      const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1;
+      opts.setScale(limitar(startScale*(dist/startDist),opts.minScale,opts.maxScale));
+      opts.onChange();
+    }
+  });
+  const soltar=e=>{
+    pointers.delete(e.pointerId);
+    if(pointers.size===1){
+      const [[,p]]=pointers;
+      modo='arrastar'; startX=opts.getX(); startY=opts.getY(); startPX=p.x; startPY=p.y;
+    }else if(pointers.size===0){
+      modo=null; capturado=false; el.style.touchAction='';
+    }
+  };
+  el.addEventListener('pointerup',soltar);
+  el.addEventListener('pointercancel',soltar);
+  // atalho de computador: roda do mouse escala sem precisar de dois dedos
+  el.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const dir=e.deltaY<0?1.06:0.94;
+    opts.setScale(limitar(opts.getScale()*dir,opts.minScale,opts.maxScale));
+    opts.onChange();
+  },{passive:false});
+}
+
+/* Escala e posição da moldura agora vêm de U.frame_scale/frame_x/frame_y
+   diretamente — não existem mais barras deslizantes lendo esses valores. Quem
+   os atualiza é o gesto de arrastar/beliscar (ver attachGesto), com limites
+   bem mais largos do que as barras antigas permitiam. */
 function updateFramePreview(){
-  const scaleEl=$('frameScale'), xEl=$('frameX'), yEl=$('frameY');
-  if(scaleEl) U.frame_scale=parseFloat(scaleEl.value);
-  if(xEl) U.frame_x=parseInt(xEl.value);
-  if(yEl) U.frame_y=parseInt(yEl.value);
   // A moldura é anexada no wrapper (avatarFrameWrap), não dentro de #sphoto — #sphoto
   // tem overflow:hidden pra recortar a foto em círculo, o que cortava a moldura junto
   // sempre que ela vazava pra fora do círculo (ex: asas, pontas decorativas). O wrapper
   // não tem overflow:hidden, então a moldura pode vazar livremente por cima do avatar.
   const wrap=$('avatarFrameWrap'); if(!wrap) return;
-  wrap.querySelector('.frame-preview')?.remove();
+  let fr=wrap.querySelector('.frame-preview');
   if(U.frame){
-    const fr=document.createElement('img'); fr.className='frame-preview'; fr.src=U.frame;
-    fr.style.position='absolute'; fr.style.left=(50+(U.frame_x||0))+'%'; fr.style.top=(50+(U.frame_y||0))+'%';
-    fr.style.transform=`translate(-50%,-50%) scale(${(U.frame_scale||1)*1.45})`; fr.style.width='100%'; fr.style.height='100%'; fr.style.pointerEvents='none'; fr.style.zIndex='2';
-    wrap.appendChild(fr);
-  }
+    if(!fr){
+      fr=document.createElement('img'); fr.className='frame-preview'; fr.src=U.frame;
+      fr.style.position='absolute'; fr.style.width='100%'; fr.style.height='100%';
+      fr.style.pointerEvents='none'; fr.style.zIndex='2';
+      wrap.appendChild(fr);
+    }else if(fr.getAttribute('src')!==U.frame){ fr.src=U.frame; }
+    fr.style.left=(50+(U.frame_x||0))+'%'; fr.style.top=(50+(U.frame_y||0))+'%';
+    fr.style.transform=`translate(-50%,-50%) scale(${(U.frame_scale||1)*1.45})`;
+  }else if(fr){ fr.remove(); }
+  const pct=$('frameEscalaVal'); if(pct) pct.textContent=Math.round((U.frame_scale||1)*100)+'%';
+}
+function initFrameGesto(){
+  const wrap=$('avatarFrameWrap'); if(!wrap) return;
+  attachGesto(wrap,{
+    getX:()=>U.frame_x||0,           setX:v=>{ U.frame_x=Math.round(v); },
+    getY:()=>U.frame_y||0,           setY:v=>{ U.frame_y=Math.round(v); },
+    getScale:()=>U.frame_scale||1,   setScale:v=>{ U.frame_scale=Math.round(v*100)/100; },
+    // converte pixels de tela em "por cento do wrapper", que é a unidade usada aqui
+    fatorX:100/(wrap.offsetWidth||58), fatorY:100/(wrap.offsetHeight||58),
+    maxOffset:220,          // bem mais generoso que os ±100 da barra antiga
+    minScale:0.3, maxScale:4,  // a barra antiga ia só de 0.5 a 2
+    onChange:updateFramePreview
+  });
 }
 /* ══════════════════════════════════════════════════════════════════
    BORDAS DO CARD DE PERFIL
@@ -183,27 +278,40 @@ function bordaAba(qual){
   bordaCarregarControles();
   buildBorderGallery();
 }
+/* Mostra a porcentagem atual de cada borda — só leitura, não existe mais
+   barra: quem muda o valor é o gesto de arrastar/beliscar direto na imagem. */
 function bordaCarregarControles(){
-  const c=bordaCampos(bordaAtual);
-  const e=$('bordaEscala'), x=$('bordaX'), y=$('bordaY');
-  if(e) e.value=Math.round((U[c.escala]||1)*100);
-  if(x) x.value=U[c.x]||0;
-  if(y) y.value=U[c.y]||0;
-  const lbl=$('bordaEscalaVal'); if(lbl) lbl.textContent=(e?e.value:100)+'%';
-}
-function bordaAjuste(){
-  const c=bordaCampos(bordaAtual);
-  const e=$('bordaEscala'), x=$('bordaX'), y=$('bordaY');
-  U[c.escala]=(parseInt(e?e.value:100,10)||100)/100;
-  U[c.x]=parseInt(x?x.value:0,10)||0;
-  U[c.y]=parseInt(y?y.value:0,10)||0;
-  const lbl=$('bordaEscalaVal'); if(lbl) lbl.textContent=Math.round(U[c.escala]*100)+'%';
-  renderBordaPreview();
+  const vt=$('bordaEscalaTopoVal'), vb=$('bordaEscalaBaixoVal');
+  if(vt) vt.textContent=Math.round((U.border_top_scale||1)*100)+'%';
+  if(vb) vb.textContent=Math.round((U.border_bottom_scale||1)*100)+'%';
 }
 function bordaRemover(){
   const c=bordaCampos(bordaAtual);
-  U[c.url]=null;
-  renderBordaPreview(); buildBorderGallery();
+  U[c.url]=null; U[c.escala]=1; U[c.x]=0; U[c.y]=0;
+  renderBordaPreview(); buildBorderGallery(); bordaCarregarControles();
+}
+/* Liga o arrastar/beliscar direto em cada imagem de borda — cada uma mexe
+   só nos próprios campos (topo nunca afeta baixo, e vice-versa). */
+function initBordaGesto(){
+  const alvoTopo=$('bpvBordaTopo'), alvoBaixo=$('bpvBordaBaixo');
+  if(alvoTopo) attachGesto(alvoTopo,{
+    getX:()=>U.border_top_x||0,          setX:v=>{ U.border_top_x=Math.round(v); },
+    getY:()=>U.border_top_y||0,          setY:v=>{ U.border_top_y=Math.round(v); },
+    getScale:()=>U.border_top_scale||1,  setScale:v=>{ U.border_top_scale=Math.round(v*100)/100; },
+    fatorX:1, fatorY:1,                  // a borda já usa pixels crus, sem conversão
+    maxOffset:320,                       // bem mais generoso que os ±100 da barra antiga
+    minScale:0.2, maxScale:5,            // a barra antiga ia só de 40% a 200%
+    onChange:()=>{ renderBordaPreview(); bordaCarregarControles(); }
+  });
+  if(alvoBaixo) attachGesto(alvoBaixo,{
+    getX:()=>U.border_bottom_x||0,          setX:v=>{ U.border_bottom_x=Math.round(v); },
+    getY:()=>U.border_bottom_y||0,          setY:v=>{ U.border_bottom_y=Math.round(v); },
+    getScale:()=>U.border_bottom_scale||1,  setScale:v=>{ U.border_bottom_scale=Math.round(v*100)/100; },
+    fatorX:1, fatorY:1,
+    maxOffset:320,
+    minScale:0.2, maxScale:5,
+    onChange:()=>{ renderBordaPreview(); bordaCarregarControles(); }
+  });
 }
 function buildBorderGallery(){
   const box=$('bordaGaleria'); if(!box) return;
@@ -248,6 +356,7 @@ async function initBordas(){
   bordaCarregarControles();
   buildBorderGallery();
   renderBordaPreview();
+  initBordaGesto();
 }
 
 /* Molduras — agora vêm da tabela `frame_presets` no Supabase, não mais do código.

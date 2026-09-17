@@ -1420,8 +1420,15 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
    atrapalham os botões do card. overflow visible no card permite que ultrapassem
    um pouco a moldura, que é o efeito desejado. */
 .perfil-card{position:relative;overflow:visible}
-.perfil-borda{position:absolute;left:50%;display:none;max-width:none;
-  width:auto;height:auto;pointer-events:none;z-index:6;
+/* CORRIGIDO — a imagem nascia no tamanho bruto do arquivo enviado, não num
+   tamanho relativo ao cartão. Uma pessoa que envia uma imagem de borda com
+   3000px de largura via aparecer ENORME mesmo em 100%, e como a escala
+   máxima permitida é generosa mas o problema estava na BASE, nem sempre dava
+   pra compensar diminuindo. Agora a largura nasce igual à largura do
+   cartão (100% do .perfil-card) e a altura acompanha proporcionalmente —
+   é isso que "100%" deveria sempre ter significado. */
+.perfil-borda{position:absolute;left:50%;display:none;
+  width:100%;height:auto;pointer-events:none;z-index:6;
   transform-origin:center;image-rendering:auto}
 .perfil-borda-topo{bottom:100%;margin-bottom:-14px}
 .perfil-borda-baixo{top:100%;margin-top:-14px}
@@ -1489,7 +1496,11 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 #bpvBordaTopo:active,#bpvBordaBaixo:active{cursor:grabbing}
 
 /* ── PRÉ-VISUALIZAÇÃO E AJUSTE DO PERFIL (moldura + bordas) ───────────────────── */
-.pex-box{max-width:420px}
+/* .mbox (compartilhado com outros modais) tem overflow-x:hidden, pensado pra
+   listas compridas — mas isso cortava a borda na horizontal quando ela ficava
+   grande demais durante o ajuste. Aqui, especificamente, liberamos isso: a
+   pessoa precisa VER a imagem inteira pra conseguir diminuir ela de volta. */
+.pex-box{max-width:420px;overflow-x:visible}
 .pex-cabec h3{margin-bottom:.2rem}
 .pex-cabec p{font-size:.7rem;color:var(--dust);line-height:1.5;margin-bottom:.8rem}
 
@@ -1520,12 +1531,17 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
    precisar recalcular a posição da alça à parte. */
 .pex-camada{position:absolute;left:50%;transform-origin:center;z-index:6}
 #pexFrameWrap{top:50%;width:100%;height:100%}
-#pexBordaTopoWrap,#pexBordaBaixoWrap{width:auto;transform-origin:center}
+/* MESMA CORREÇÃO aqui: a largura nasce igual à do cartão, não ao arquivo bruto.
+   É por causa disto que uma borda ficava enorme e "sem jeito de diminuir" —
+   a base já nascia gigante, e a prévia usava a mesma conta quebrada que o
+   perfil público, então corrigir só aqui deixaria as duas divergentes. */
+#pexBordaTopoWrap,#pexBordaBaixoWrap{width:100%;transform-origin:center}
 #pexBordaTopoWrap{bottom:100%;top:auto;margin-bottom:-6px}
 #pexBordaBaixoWrap{top:100%;margin-top:-6px}
 .pex-img{display:block;width:100%;height:100%;pointer-events:auto;user-select:none;
-  -webkit-user-drag:none}
-#pexBordaTopoWrap .pex-img,#pexBordaBaixoWrap .pex-img{width:auto;height:auto;max-width:none}
+  -webkit-user-drag:none;cursor:grab}
+.pex-img:active{cursor:grabbing}
+#pexBordaTopoWrap .pex-img,#pexBordaBaixoWrap .pex-img{height:auto}
 
 /* alça de redimensionar — mesma linguagem visual do canto dos cards do quadro */
 .pex-alca{position:absolute;right:-7px;bottom:-7px;width:18px;height:18px;
@@ -1534,6 +1550,11 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
   box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .14s}
 .pex-alca:hover{transform:scale(1.18)}
 .pex-camada:hover .pex-alca,.pex-camada:active .pex-alca{opacity:1}
+/* camada de uma aba que não está aberta agora: visível, mas claramente fora
+   de edição — sem alça, sem cursor de arrastar, um pouco apagada */
+.pex-inativa{opacity:.82}
+.pex-inativa .pex-alca{display:none}
+.pex-inativa .pex-img{cursor:default}
 
 .pex-abas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;margin-bottom:.5rem;
   background:rgba(255,255,255,.04);border:1px solid var(--ridge);border-radius:var(--r);padding:.22rem}

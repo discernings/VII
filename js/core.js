@@ -131,7 +131,8 @@ function safeInit(name,fn){
 }
 document.addEventListener('DOMContentLoaded', ()=>{
   safeInit('buildDrawColors',   buildDrawColors);
-  safeInit('loadFramePresets',  ()=>{ loadFramePresets().then(buildFramePresets).catch(e=>console.error('[boot] loadFramePresets:',e)); });
+  // a galeria de molduras agora só é montada dentro de abrirPreviewEdit(); aqui só pré-aquecemos a busca
+  safeInit('loadFramePresets',  ()=>{ loadFramePresets().catch(e=>console.error('[boot] loadFramePresets:',e)); });
   safeInit('ytUpdateLoginUI',   ytUpdateLoginUI);
   safeInit('initProfileSystem', initProfileSystem);
   safeInit('checkAuth',         checkAuth);

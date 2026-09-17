@@ -131,85 +131,21 @@ function cropConfirm(){
    mouse também escala, como atalho no computador).
    ══════════════════════════════════════════════════════════════════ */
 function limitar(v,a,b){ return Math.max(a,Math.min(b,v)); }
-function attachGesto(el,opts){
-  if(!el||el.dataset.gestoPronto) return;
-  el.dataset.gestoPronto='1';
-  const pointers=new Map();
-  let modo=null, capturado=false, startDist=1, startScale=1, startX=0, startY=0, startPX=0, startPY=0;
+/* ══════════════════════════════════════════════════════════════════
+   PRÉ-VISUALIZAÇÃO E AJUSTE DO PERFIL
 
-  /* IMPORTANTE: a captura do toque só acontece DEPOIS de confirmar que é um
-     arrasto de verdade (movimento além de um limiar mínimo), nunca no
-     momento do toque em si. Isso existe porque avatarFrameWrap contém um
-     <input type="file"> invisível por baixo (é assim que tocar no avatar abre
-     a galeria de fotos) — capturar o ponteiro de imediato poderia impedir
-     esse clique nativo de disparar em alguns navegadores. Um toque parado
-     continua funcionando exatamente como antes; só um arrasto de verdade
-     assume o gesto. */
-  el.addEventListener('pointerdown',e=>{
-    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pointers.size===1){
-      modo='talvez-arrastar';
-      startX=opts.getX(); startY=opts.getY();
-      startPX=e.clientX; startPY=e.clientY;
-    }else if(pointers.size===2){
-      // dois dedos já é inequívoco: não tem como ser um toque de abrir a galeria
-      pointers.forEach((_,id)=>{ try{ el.setPointerCapture(id); }catch(_){} });
-      capturado=true; modo='pinca';
-      const pts=[...pointers.values()];
-      startDist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1;
-      startScale=opts.getScale();
-    }
-  });
-  el.addEventListener('pointermove',e=>{
-    if(!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(modo==='talvez-arrastar'&&pointers.size===1){
-      const dx=e.clientX-startPX, dy=e.clientY-startPY;
-      if(!capturado && (Math.abs(dx)>6||Math.abs(dy)>6)){
-        try{ el.setPointerCapture(e.pointerId); }catch(_){}
-        capturado=true; el.style.touchAction='none'; modo='arrastar';
-      }
-      if(modo==='arrastar'){
-        opts.setX(limitar(startX+dx*(opts.fatorX||1),-opts.maxOffset,opts.maxOffset));
-        opts.setY(limitar(startY+dy*(opts.fatorY||1),-opts.maxOffset,opts.maxOffset));
-        opts.onChange();
-      }
-    }else if(modo==='pinca'&&pointers.size===2){
-      const pts=[...pointers.values()];
-      const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1;
-      opts.setScale(limitar(startScale*(dist/startDist),opts.minScale,opts.maxScale));
-      opts.onChange();
-    }
-  });
-  const soltar=e=>{
-    pointers.delete(e.pointerId);
-    if(pointers.size===1){
-      const [[,p]]=pointers;
-      modo='arrastar'; startX=opts.getX(); startY=opts.getY(); startPX=p.x; startPY=p.y;
-    }else if(pointers.size===0){
-      modo=null; capturado=false; el.style.touchAction='';
-    }
-  };
-  el.addEventListener('pointerup',soltar);
-  el.addEventListener('pointercancel',soltar);
-  // atalho de computador: roda do mouse escala sem precisar de dois dedos
-  el.addEventListener('wheel',e=>{
-    e.preventDefault();
-    const dir=e.deltaY<0?1.06:0.94;
-    opts.setScale(limitar(opts.getScale()*dir,opts.minScale,opts.maxScale));
-    opts.onChange();
-  },{passive:false});
-}
-
-/* Escala e posição da moldura agora vêm de U.frame_scale/frame_x/frame_y
-   diretamente — não existem mais barras deslizantes lendo esses valores. Quem
-   os atualiza é o gesto de arrastar/beliscar (ver attachGesto), com limites
-   bem mais largos do que as barras antigas permitiam. */
+   Abre como se fosse abrir o perfil de verdade — mesmo banner, mesmo nome,
+   mesmo avatar — só que aqui a moldura e as duas bordas ficam editáveis:
+   segurar e arrastar move, puxar a alcinha no canto redimensiona. É o mesmo
+   jeito de mexer nos cards do quadro (startBoardResize), de propósito — pra
+   ser uma interação que a pessoa já conhece, em vez de belisco de dois dedos,
+   que era difícil de acertar numa área pequena.
+   ══════════════════════════════════════════════════════════════════ */
+/* Mostra a moldura no avatar pequeno das configurações — só exibição, sem
+   gesto nenhum aqui. Editar de verdade agora acontece na pré-visualização
+   grande (abrirPreviewEdit), onde a imagem não fica em cima do botão de
+   trocar de foto. */
 function updateFramePreview(){
-  // A moldura é anexada no wrapper (avatarFrameWrap), não dentro de #sphoto — #sphoto
-  // tem overflow:hidden pra recortar a foto em círculo, o que cortava a moldura junto
-  // sempre que ela vazava pra fora do círculo (ex: asas, pontas decorativas). O wrapper
-  // não tem overflow:hidden, então a moldura pode vazar livremente por cima do avatar.
   const wrap=$('avatarFrameWrap'); if(!wrap) return;
   let fr=wrap.querySelector('.frame-preview');
   if(U.frame){
@@ -222,115 +158,154 @@ function updateFramePreview(){
     fr.style.left=(50+(U.frame_x||0))+'%'; fr.style.top=(50+(U.frame_y||0))+'%';
     fr.style.transform=`translate(-50%,-50%) scale(${(U.frame_scale||1)*1.45})`;
   }else if(fr){ fr.remove(); }
-  const pct=$('frameEscalaVal'); if(pct) pct.textContent=Math.round((U.frame_scale||1)*100)+'%';
 }
-function initFrameGesto(){
-  const wrap=$('avatarFrameWrap'); if(!wrap) return;
-  attachGesto(wrap,{
-    getX:()=>U.frame_x||0,           setX:v=>{ U.frame_x=Math.round(v); },
-    getY:()=>U.frame_y||0,           setY:v=>{ U.frame_y=Math.round(v); },
-    getScale:()=>U.frame_scale||1,   setScale:v=>{ U.frame_scale=Math.round(v*100)/100; },
-    // converte pixels de tela em "por cento do wrapper", que é a unidade usada aqui
-    fatorX:100/(wrap.offsetWidth||58), fatorY:100/(wrap.offsetHeight||58),
-    maxOffset:220,          // bem mais generoso que os ±100 da barra antiga
-    minScale:0.3, maxScale:4,  // a barra antiga ia só de 0.5 a 2
-    onChange:updateFramePreview
-  });
+
+let pexAba='frame';
+
+/* Mapeia cada camada editável aos campos que ela lê/escreve em U, e à lista
+   de imagens disponíveis pra ela. A moldura usa porcentagem (é assim que o
+   resto do app — avatares em salas, membros — já espera frame_x/frame_y);
+   as bordas usam pixels crus. */
+function pexCampos(qual){
+  if(qual==='frame') return {
+    url:'frame', escala:'frame_scale', x:'frame_x', y:'frame_y',
+    wrap:'pexFrameWrap', img:'pexFrame', unidade:'percent',
+    min:0.3, max:4, limite:220, presets:()=>FRAME_PRESETS
+  };
+  if(qual==='bordaTopo') return {
+    url:'border_top', escala:'border_top_scale', x:'border_top_x', y:'border_top_y',
+    wrap:'pexBordaTopoWrap', img:'pexBordaTopo', unidade:'px',
+    min:0.2, max:5, limite:320, presets:()=>BORDER_PRESETS
+  };
+  return {
+    url:'border_bottom', escala:'border_bottom_scale', x:'border_bottom_x', y:'border_bottom_y',
+    wrap:'pexBordaBaixoWrap', img:'pexBordaBaixo', unidade:'px',
+    min:0.2, max:5, limite:320, presets:()=>BORDER_PRESETS
+  };
 }
-/* ══════════════════════════════════════════════════════════════════
-   BORDAS DO CARD DE PERFIL
-
-   Imagens decorativas no topo e no rodapé do card. Seguem o mesmo modelo das
-   molduras de avatar: a lista vem do banco (tabela `border_presets`), então dá
-   para acrescentar bordas novas sem tocar no código.
-
-   Cada borda guarda três ajustes — tamanho, deslocamento horizontal e vertical —
-   salvos no perfil. Como ficam no banco, todo mundo que abrir o perfil vê a
-   mesma coisa.
-   ══════════════════════════════════════════════════════════════════ */
-let BORDER_PRESETS=[];
-let bordaAtual='topo';        // qual borda está sendo editada
-
-async function loadBorderPresets(){
-  try{
-    const { data, error }=await getSupa().from('border_presets')
-      .select('url').eq('active',true).order('sort_order',{ascending:true});
-    if(error) throw error;
-    BORDER_PRESETS=(data||[]).map(r=>r.url).filter(Boolean);
-    localStorage.setItem('tfm_bordas_cache',JSON.stringify(BORDER_PRESETS));
-  }catch(e){
-    console.warn('Bordas: usando cópia local —',e.message);
-    try{ BORDER_PRESETS=JSON.parse(localStorage.getItem('tfm_bordas_cache')||'[]'); }
-    catch(_){ BORDER_PRESETS=[]; }
+function pexRenderCamada(qual){
+  const c=pexCampos(qual);
+  const wrap=$(c.wrap), img=$(c.img); if(!wrap||!img) return;
+  const url=U[c.url];
+  if(!url){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  if(img.getAttribute('src')!==url) img.setAttribute('src',url);
+  const escala=U[c.escala]||1, x=U[c.x]||0, y=U[c.y]||0;
+  if(c.unidade==='percent'){
+    wrap.style.left=(50+x)+'%'; wrap.style.top=(50+y)+'%';
+    wrap.style.transform=`translate(-50%,-50%) scale(${escala*1.45})`;
+  }else{
+    wrap.style.left='50%'; wrap.style.top='0';
+    wrap.style.transform=`translate(calc(-50% + ${x}px), ${y}px) scale(${escala})`;
   }
 }
-/* Lê e escreve os ajustes da borda em edição, sem repetir código para topo e
-   rodapé — os campos seguem o padrão border_topo_* e border_baixo_*. */
-function bordaCampos(qual){
-  const p = (qual==='topo') ? 'border_top' : 'border_bottom';
-  return { url:p, escala:p+'_scale', x:p+'_x', y:p+'_y' };
+function pexRenderTudo(){
+  const av=$('pexAv'); if(av) av.innerHTML=avatarFillHTML(U);
+  const nm=$('pexNome'); if(nm) nm.textContent=($('sNm')&&$('sNm').value.trim())||U.name||'Seu nome';
+  const uname=($('sUname')&&$('sUname').value.trim())||U.username||'';
+  const us=$('pexUser'); if(us) us.textContent=uname?('@'+uname):'';
+  const bio=$('pexBio'); if(bio) bio.textContent=($('sBio')&&$('sBio').value.trim())||U.bio||'';
+  const bn=$('pexBanner');
+  if(bn) bn.style.background=U.banner?`url('${U.banner}') center/cover`:'linear-gradient(90deg,#181818,#242424)';
+  pexRenderCamada('frame'); pexRenderCamada('bordaTopo'); pexRenderCamada('bordaBaixo');
+  updateFramePreview();   // mantém o avatar pequeno das configurações em dia também
+  pexAtualizarPct();
 }
-function bordaAba(qual){
-  bordaAtual=qual;
-  const t=$('bordaAbaTopo'), b=$('bordaAbaBaixo');
-  if(t) t.classList.toggle('on',qual==='topo');
-  if(b) b.classList.toggle('on',qual==='baixo');
-  bordaCarregarControles();
-  buildBorderGallery();
+function pexAtualizarPct(){
+  const c=pexCampos(pexAba);
+  const el=$('pexPct'); if(el) el.textContent=Math.round((U[c.escala]||1)*100)+'%';
 }
-/* Mostra a porcentagem atual de cada borda — só leitura, não existe mais
-   barra: quem muda o valor é o gesto de arrastar/beliscar direto na imagem. */
-function bordaCarregarControles(){
-  const vt=$('bordaEscalaTopoVal'), vb=$('bordaEscalaBaixoVal');
-  if(vt) vt.textContent=Math.round((U.border_top_scale||1)*100)+'%';
-  if(vb) vb.textContent=Math.round((U.border_bottom_scale||1)*100)+'%';
+function pexAbrirAba(qual){
+  pexAba=qual;
+  document.querySelectorAll('.pex-aba').forEach(b=>b.classList.toggle('on', b.dataset.aba===qual));
+  pexBuildGaleria();
+  pexAtualizarPct();
 }
-function bordaRemover(){
-  const c=bordaCampos(bordaAtual);
-  U[c.url]=null; U[c.escala]=1; U[c.x]=0; U[c.y]=0;
-  renderBordaPreview(); buildBorderGallery(); bordaCarregarControles();
-}
-/* Liga o arrastar/beliscar direto em cada imagem de borda — cada uma mexe
-   só nos próprios campos (topo nunca afeta baixo, e vice-versa). */
-function initBordaGesto(){
-  const alvoTopo=$('bpvBordaTopo'), alvoBaixo=$('bpvBordaBaixo');
-  if(alvoTopo) attachGesto(alvoTopo,{
-    getX:()=>U.border_top_x||0,          setX:v=>{ U.border_top_x=Math.round(v); },
-    getY:()=>U.border_top_y||0,          setY:v=>{ U.border_top_y=Math.round(v); },
-    getScale:()=>U.border_top_scale||1,  setScale:v=>{ U.border_top_scale=Math.round(v*100)/100; },
-    fatorX:1, fatorY:1,                  // a borda já usa pixels crus, sem conversão
-    maxOffset:320,                       // bem mais generoso que os ±100 da barra antiga
-    minScale:0.2, maxScale:5,            // a barra antiga ia só de 40% a 200%
-    onChange:()=>{ renderBordaPreview(); bordaCarregarControles(); }
-  });
-  if(alvoBaixo) attachGesto(alvoBaixo,{
-    getX:()=>U.border_bottom_x||0,          setX:v=>{ U.border_bottom_x=Math.round(v); },
-    getY:()=>U.border_bottom_y||0,          setY:v=>{ U.border_bottom_y=Math.round(v); },
-    getScale:()=>U.border_bottom_scale||1,  setScale:v=>{ U.border_bottom_scale=Math.round(v*100)/100; },
-    fatorX:1, fatorY:1,
-    maxOffset:320,
-    minScale:0.2, maxScale:5,
-    onChange:()=>{ renderBordaPreview(); bordaCarregarControles(); }
-  });
-}
-function buildBorderGallery(){
-  const box=$('bordaGaleria'); if(!box) return;
-  const c=bordaCampos(bordaAtual);
+function pexBuildGaleria(){
+  const box=$('pexGaleria'); if(!box) return;
+  const c=pexCampos(pexAba);
   const atual=U[c.url]||null;
   box.innerHTML='';
   const nada=document.createElement('div');
   nada.className='borda-item'+(!atual?' on':'');
   nada.textContent='Nenhuma';
-  nada.onclick=()=>{ U[c.url]=null; renderBordaPreview(); buildBorderGallery(); };
+  nada.onclick=()=>{ U[c.url]=null; pexRenderCamada(pexAba); pexBuildGaleria(); };
   box.appendChild(nada);
-  BORDER_PRESETS.forEach(url=>{
+  (c.presets()||[]).forEach(url=>{
     const d=document.createElement('div');
     d.className='borda-item'+(atual===url?' on':'');
-    d.onclick=()=>{ U[c.url]=url; renderBordaPreview(); buildBorderGallery(); };
+    d.onclick=()=>{ U[c.url]=url; pexRenderCamada(pexAba); pexBuildGaleria(); };
     const img=document.createElement('img'); img.src=url; img.loading='lazy';
     d.appendChild(img); box.appendChild(d);
   });
 }
+function pexRemover(){
+  const c=pexCampos(pexAba);
+  U[c.url]=null; U[c.escala]=1; U[c.x]=0; U[c.y]=0;
+  pexRenderCamada(pexAba); pexBuildGaleria(); pexAtualizarPct();
+}
+function limitar(v,a,b){ return Math.max(a,Math.min(b,v)); }
+/* Arrastar: segura na IMAGEM (não na alça) e move — captura o toque na hora,
+   sem o truque de espera que a moldura pequena precisava, porque aqui a
+   imagem não fica em cima de nenhum botão de upload por baixo.
+   Redimensionar: puxa a alça no canto — a distância até o centro da camada
+   vira a escala. É o mesmo cálculo do redimensionar dos cards do quadro
+   (startBoardResize/onBoardResizeMove), só que por distância ao centro em vez
+   de largura/altura, porque aqui a camada é sempre quadrada. */
+function pexAttachInteracao(qual){
+  const c=pexCampos(qual);
+  const wrap=$(c.wrap), img=$(c.img); if(!wrap||!img||wrap.dataset.pexPronto) return;
+  wrap.dataset.pexPronto='1';
+  const alca=wrap.querySelector('.pex-alca');
+
+  img.style.touchAction='none'; img.style.cursor='grab';
+  img.addEventListener('pointerdown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    try{ img.setPointerCapture(e.pointerId); }catch(_){}
+    const startX=U[c.x]||0, startY=U[c.y]||0;
+    const startPX=e.clientX, startPY=e.clientY;
+    const base=wrap.parentElement;
+    const fatorX = c.unidade==='percent' ? 100/((base&&base.offsetWidth)||130) : 1;
+    const fatorY = c.unidade==='percent' ? 100/((base&&base.offsetHeight)||130) : 1;
+    const mover=ev=>{
+      U[c.x]=limitar(startX+(ev.clientX-startPX)*fatorX, -c.limite, c.limite);
+      U[c.y]=limitar(startY+(ev.clientY-startPY)*fatorY, -c.limite, c.limite);
+      pexRenderCamada(qual);
+    };
+    const soltar=()=>{ img.removeEventListener('pointermove',mover); };
+    img.addEventListener('pointermove',mover);
+    img.addEventListener('pointerup',soltar,{once:true});
+    img.addEventListener('pointercancel',soltar,{once:true});
+  });
+
+  if(!alca) return;
+  alca.style.touchAction='none';
+  alca.addEventListener('pointerdown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    try{ alca.setPointerCapture(e.pointerId); }catch(_){}
+    const mover=ev=>{
+      const r=wrap.getBoundingClientRect();
+      const cx=r.left+r.width/2, cy=r.top+r.height/2;
+      const dist=Math.hypot(ev.clientX-cx, ev.clientY-cy);
+      const escalaAtual=U[c.escala]||1;
+      const base=Math.hypot(r.width/2,r.height/2)/(escalaAtual||1);   // tamanho "sem escala"
+      U[c.escala]=limitar(dist/(base||1), c.min, c.max);
+      pexRenderCamada(qual); pexAtualizarPct();
+    };
+    const soltar=()=>{ alca.removeEventListener('pointermove',mover); };
+    alca.addEventListener('pointermove',mover);
+    alca.addEventListener('pointerup',soltar,{once:true});
+    alca.addEventListener('pointercancel',soltar,{once:true});
+  });
+}
+async function abrirPreviewEdit(){
+  await loadFramePresets(); await loadBorderPresets();
+  pexRenderTudo();
+  pexAttachInteracao('frame'); pexAttachInteracao('bordaTopo'); pexAttachInteracao('bordaBaixo');
+  pexAbrirAba(pexAba);
+  $('previewEditModal').classList.add('on');
+}
+
 /* Aplica uma borda a um elemento de imagem. Usado tanto na pré-visualização
    quanto no perfil real, para os dois nunca divergirem. */
 function aplicarBorda(el,url,escala,dx,dy){
@@ -339,24 +314,6 @@ function aplicarBorda(el,url,escala,dx,dy){
   el.style.display='block';
   if(el.getAttribute('src')!==url) el.setAttribute('src',url);
   el.style.transform=`translate(calc(-50% + ${dx||0}px), ${dy||0}px) scale(${escala||1})`;
-}
-function renderBordaPreview(){
-  aplicarBorda($('bpvBordaTopo'),  U.border_top,    U.border_top_scale,    U.border_top_x,    U.border_top_y);
-  aplicarBorda($('bpvBordaBaixo'), U.border_bottom, U.border_bottom_scale, U.border_bottom_x, U.border_bottom_y);
-  const av=$('bpvAvatar'); if(av) av.innerHTML=avatarHTML(U);
-  const nm=$('bpvNome'); if(nm) nm.textContent=($('sNm')&&$('sNm').value.trim())||U.name||'Seu nome';
-  const us=$('bpvUser'); const u=($('sUname')&&$('sUname').value.trim())||U.username||'';
-  if(us) us.textContent=u?('@'+u):'';
-  const bio=$('bpvBio'); if(bio) bio.textContent=($('sBio')&&$('sBio').value.trim())||U.bio||'';
-  const bn=$('bpvBanner');
-  if(bn) bn.style.background=U.banner?`url('${U.banner}') center/cover`:'linear-gradient(90deg,#181818,#242424)';
-}
-async function initBordas(){
-  await loadBorderPresets();
-  bordaCarregarControles();
-  buildBorderGallery();
-  renderBordaPreview();
-  initBordaGesto();
 }
 
 /* Molduras — agora vêm da tabela `frame_presets` no Supabase, não mais do código.

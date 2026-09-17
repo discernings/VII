@@ -110,14 +110,10 @@ async function doLogoutAuth(){
 /* ── SETTINGS ── */
 function openSettings(){
   pendingAvatarFile=null; pendingBannerFile=null; // evita reenviar um arquivo antigo de uma edição cancelada anteriormente
-  loadFramePresets().then(buildFramePresets); // refaz a busca sempre que abre — molduras novas aparecem sem precisar recarregar a página
-  initBordas();                               // bordas do card + pré-visualização
-  initFrameGesto();                           // arrastar/beliscar na moldura, sem barras
+  updateFramePreview();   // moldura no avatar pequeno — só exibição; editar de verdade é em abrirPreviewEdit()
   $('sNm').value=U.name||''; $('sEm').value=U.email||'';
   if($('sUname')) $('sUname').value=U.username||'';
   if($('sBio')) $('sBio').value=U.bio||'';
-  // as barras da moldura foram removidas: quem mostra o valor agora é o
-  // próprio updateFramePreview(), chamado logo abaixo por initFrameGesto().
   const sp=$('sphoto');
   sp.innerHTML=U.photo?`<img src="${U.photo}"><input type="file" id="spFile" accept="image/*" onchange="handleSPhoto(this)">`:`<span class="sinit">${(U.name||'A').charAt(0).toUpperCase()}</span><input type="file" id="spFile" accept="image/*" onchange="handleSPhoto(this)">`;
   const sb=$('sbanner');

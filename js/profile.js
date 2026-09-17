@@ -220,6 +220,20 @@ function pexAbrirAba(qual){
   document.querySelectorAll('.pex-aba').forEach(b=>b.classList.toggle('on', b.dataset.aba===qual));
   pexBuildGaleria();
   pexAtualizarPct();
+  pexAtualizarInterativo();
+}
+/* Só a camada da aba aberta responde ao toque. Antes as três (moldura, borda
+   de cima, borda de baixo) ficavam interativas o tempo todo, mesmo com outra
+   aba selecionada — como elas ficam bem perto umas das outras no cartão, um
+   toque pensado pra uma acabava sendo capturado pela outra por engano. */
+function pexAtualizarInterativo(){
+  ['frame','bordaTopo','bordaBaixo'].forEach(qual=>{
+    const c=pexCampos(qual);
+    const wrap=$(c.wrap); if(!wrap) return;
+    const ativa = qual===pexAba;
+    wrap.style.pointerEvents = ativa ? 'auto' : 'none';
+    wrap.classList.toggle('pex-inativa', !ativa);
+  });
 }
 function pexBuildGaleria(){
   const box=$('pexGaleria'); if(!box) return;
@@ -258,7 +272,7 @@ function pexAttachInteracao(qual){
   wrap.dataset.pexPronto='1';
   const alca=wrap.querySelector('.pex-alca');
 
-  img.style.touchAction='none'; img.style.cursor='grab';
+  img.style.touchAction='none';  // o cursor (grab/default) fica só no CSS, pra .pex-inativa poder sobrescrever
   img.addEventListener('pointerdown',e=>{
     e.preventDefault(); e.stopPropagation();
     try{ img.setPointerCapture(e.pointerId); }catch(_){}

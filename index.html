@@ -461,7 +461,7 @@
     <div class="ssec"><h3 data-i18n="nav.profile">Perfil</h3>
       <div class="spr">
         <div style="display:flex;flex-direction:column;gap:.5rem;width:190px">
-          <div class="avatar-frame-wrap" id="avatarFrameWrap" style="position:relative;width:108px;height:108px;flex-shrink:0;cursor:grab">
+          <div class="avatar-frame-wrap" id="avatarFrameWrap" style="position:relative;width:108px;height:108px;flex-shrink:0">
             <div class="sphoto" id="sphoto"><span class="sinit" id="sinit">A</span><input type="file" id="spFile" accept="image/*" onchange="handleSPhoto(this)"></div>
           </div>
           <div class="sbanner" id="sbanner"><span class="sb-ph" data-i18n="f.banner">Banner</span><input type="file" id="spBannerFile" accept="image/*" onchange="handleSBanner(this)"></div>
@@ -471,10 +471,7 @@
           <div class="srow"><span class="slbl" data-i18n="f.email">Email</span><input class="si" type="email" id="sEm" placeholder="email@exemplo.com"></div>
           <div class="srow"><span class="slbl">Usuário (único)</span><input class="si" type="text" id="sUname" placeholder="@usuario"></div>
           <div class="srow"><span class="slbl" data-i18n="f.bio">Biografia</span><textarea class="si" id="sBio" placeholder="Fale sobre você" style="height:60px"></textarea></div>
-          <div class="gesto-dica">
-            <span>Arraste a moldura para mover · belisque com dois dedos (ou use a roda do mouse) para redimensionar</span>
-            <span class="gesto-pct" id="frameEscalaVal">100%</span>
-          </div>
+          <button class="rl-btn" onclick="abrirPreviewEdit()" style="align-self:flex-start;margin-top:.2rem">🖼️ Editar moldura e bordas</button>
         </div>
       </div>
     </div>
@@ -544,48 +541,6 @@
         </div>
       </div>
     </div>
-    <div class="ssec"><h3>Bordas do card</h3>
-      <p class="borda-dica">Imagens decorativas no topo e no rodapé do seu perfil. Todo mundo que abrir seu perfil vê.</p>
-
-      <!-- PRÉ-VISUALIZAÇÃO: é o mesmo card do perfil real, com um rótulo -->
-      <div class="bpv-wrap">
-        <span class="bpv-tag">PRÉVIA</span>
-        <div class="bpv-card" id="bpvCard">
-          <img class="perfil-borda perfil-borda-topo"  id="bpvBordaTopo"  alt="">
-          <img class="perfil-borda perfil-borda-baixo" id="bpvBordaBaixo" alt="">
-          <div class="bpv-banner" id="bpvBanner"></div>
-          <div class="bpv-linha">
-            <div class="bpv-av" id="bpvAvatar"></div>
-            <div class="bpv-txt">
-              <div class="bpv-nome" id="bpvNome">Seu nome</div>
-              <div class="bpv-user" id="bpvUser">@usuario</div>
-            </div>
-          </div>
-          <div class="bpv-bio" id="bpvBio"></div>
-        </div>
-      </div>
-
-      <div class="borda-abas">
-        <button class="borda-aba on" id="bordaAbaTopo" onclick="bordaAba('topo')">Borda de cima</button>
-        <button class="borda-aba" id="bordaAbaBaixo" onclick="bordaAba('baixo')">Borda de baixo</button>
-      </div>
-      <div class="borda-galeria" id="bordaGaleria"></div>
-      <div class="borda-ctrl">
-        <div class="gesto-dica">
-          <span>Arraste a imagem da borda ali em cima para mover · belisque com dois dedos (ou use a roda do mouse) para redimensionar</span>
-        </div>
-        <div class="borda-pcts">
-          <span>Cima: <b class="gesto-pct" id="bordaEscalaTopoVal">100%</b></span>
-          <span>Baixo: <b class="gesto-pct" id="bordaEscalaBaixoVal">100%</b></span>
-        </div>
-        <button class="rl-btn" onclick="bordaRemover()">remover a borda selecionada</button>
-      </div>
-    </div>
-
-    <div class="ssec"><h3 data-i18n="prof.frames">Molduras</h3>
-      <div id="framePresets" class="gg"></div>
-      <div style="margin-top:.5rem;font-size:.7rem;color:var(--dust)">Novas molduras são adicionadas pela administração — mande sua sugestão de imagem.</div>
-    </div>
     <div class="mact">
       <button class="btn bp" onclick="saveSettings()" data-i18n="act.save">Salvar</button>
       <button class="btn bg2" onclick="openMyPublicProfile()" data-i18n="prof.open">Abrir meu perfil</button>
@@ -595,6 +550,60 @@
 </div>
 
 <!-- Perfil Público -->
+<div class="modal" id="previewEditModal">
+  <div class="mbox pex-box">
+    <div class="pex-cabec">
+      <h3>Pré-visualização do perfil</h3>
+      <p>Arraste a moldura ou a borda pra mover. Puxe a alcinha no canto pra redimensionar — igual nos cards do quadro.</p>
+    </div>
+
+    <!-- A PRÉVIA é o perfil de verdade, do jeito que qualquer pessoa vai ver -->
+    <div class="pex-wrap">
+      <span class="pex-tag">PRÉVIA</span>
+      <div class="pex-card" id="pexCard">
+        <div class="pex-camada" id="pexBordaTopoWrap">
+          <img class="pex-img" id="pexBordaTopo" alt="" draggable="false">
+          <span class="pex-alca" data-alca="bordaTopo" title="Redimensionar"></span>
+        </div>
+        <div class="pex-banner" id="pexBanner"></div>
+        <div class="pex-linha">
+          <div class="pex-av-wrap">
+            <div class="pex-av" id="pexAv"></div>
+            <div class="pex-camada pex-camada-moldura" id="pexFrameWrap">
+              <img class="pex-img" id="pexFrame" alt="" draggable="false">
+              <span class="pex-alca" data-alca="frame" title="Redimensionar"></span>
+            </div>
+          </div>
+          <div class="pex-txt">
+            <div class="pex-nome" id="pexNome">Seu nome</div>
+            <div class="pex-user" id="pexUser">@usuario</div>
+          </div>
+        </div>
+        <div class="pex-bio" id="pexBio"></div>
+        <div class="pex-camada" id="pexBordaBaixoWrap">
+          <img class="pex-img" id="pexBordaBaixo" alt="" draggable="false">
+          <span class="pex-alca" data-alca="bordaBaixo" title="Redimensionar"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- escolha de imagens: qual moldura e quais bordas usar -->
+    <div class="pex-abas">
+      <button class="pex-aba on" data-aba="frame" onclick="pexAbrirAba('frame')">Moldura</button>
+      <button class="pex-aba" data-aba="bordaTopo" onclick="pexAbrirAba('bordaTopo')">Borda de cima</button>
+      <button class="pex-aba" data-aba="bordaBaixo" onclick="pexAbrirAba('bordaBaixo')">Borda de baixo</button>
+    </div>
+    <div class="pex-galeria" id="pexGaleria"></div>
+    <div class="pex-rodape">
+      <span class="gesto-pct" id="pexPct">100%</span>
+      <button class="rl-btn" onclick="pexRemover()">remover esta imagem</button>
+    </div>
+
+    <div class="mact">
+      <button class="btn bp" onclick="closeModal('previewEditModal')" data-i18n="act.close">Fechar</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="profileModal">
   <div class="mbox perfil-card" id="pubCard" style="max-width:680px;width:calc(100% - 2rem)">
     <!-- Bordas decorativas: imagens que a pessoa escolhe para enfeitar o topo e

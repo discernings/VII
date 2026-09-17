@@ -1487,3 +1487,60 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 #avatarFrameWrap:active{cursor:grabbing}
 #bpvBordaTopo,#bpvBordaBaixo{cursor:grab;touch-action:none}
 #bpvBordaTopo:active,#bpvBordaBaixo:active{cursor:grabbing}
+
+/* ── PRÉ-VISUALIZAÇÃO E AJUSTE DO PERFIL (moldura + bordas) ───────────────────── */
+.pex-box{max-width:420px}
+.pex-cabec h3{margin-bottom:.2rem}
+.pex-cabec p{font-size:.7rem;color:var(--dust);line-height:1.5;margin-bottom:.8rem}
+
+.pex-wrap{position:relative;padding:2.2rem .6rem 1rem;margin-bottom:.8rem;
+  border-radius:var(--rl);background:rgba(0,0,0,.32);border:1px dashed var(--ridge)}
+.pex-tag{position:absolute;top:.5rem;left:.6rem;z-index:9;
+  font-size:.55rem;letter-spacing:.14em;font-weight:700;
+  padding:.15rem .5rem;border-radius:100px;color:#0b1310;
+  background:linear-gradient(90deg,#7fe0a8,#bff5d5)}
+.pex-card{position:relative;overflow:visible;border-radius:var(--rl);padding:.8rem;
+  background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(10,12,11,.96));
+  border:1px solid var(--ridge)}
+.pex-banner{width:100%;aspect-ratio:3/1;border-radius:8px;overflow:hidden}
+.pex-linha{display:flex;gap:.7rem;align-items:flex-end;margin-top:-30px;position:relative;z-index:2}
+.pex-av-wrap{position:relative;width:64px;height:64px;flex-shrink:0}
+.pex-av{position:absolute;inset:0;border-radius:50%;overflow:hidden;
+  border:3px solid rgba(0,0,0,.6);background:#222}
+.pex-txt{min-width:0;flex:1;padding-bottom:.15rem}
+.pex-nome{font-weight:700;font-size:.88rem;color:var(--bone);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pex-user{font-size:.72rem;color:var(--ash)}
+.pex-bio{font-size:.7rem;color:var(--dust);margin-top:.5rem;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Camadas editáveis: a moldura e as duas bordas. Cada uma é um "wrap" que
+   recebe a transformação (posição + escala) inteira — a imagem e a alcinha
+   de redimensionar são filhas dele e se movem juntas automaticamente, sem
+   precisar recalcular a posição da alça à parte. */
+.pex-camada{position:absolute;left:50%;transform-origin:center;z-index:6}
+#pexFrameWrap{top:50%;width:100%;height:100%}
+#pexBordaTopoWrap,#pexBordaBaixoWrap{width:auto;transform-origin:center}
+#pexBordaTopoWrap{bottom:100%;top:auto;margin-bottom:-6px}
+#pexBordaBaixoWrap{top:100%;margin-top:-6px}
+.pex-img{display:block;width:100%;height:100%;pointer-events:auto;user-select:none;
+  -webkit-user-drag:none}
+#pexBordaTopoWrap .pex-img,#pexBordaBaixoWrap .pex-img{width:auto;height:auto;max-width:none}
+
+/* alça de redimensionar — mesma linguagem visual do canto dos cards do quadro */
+.pex-alca{position:absolute;right:-7px;bottom:-7px;width:18px;height:18px;
+  border-radius:50%;background:rgba(120,235,170,.95);border:2px solid #0b1310;
+  cursor:nwse-resize;touch-action:none;z-index:7;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .14s}
+.pex-alca:hover{transform:scale(1.18)}
+.pex-camada:hover .pex-alca,.pex-camada:active .pex-alca{opacity:1}
+
+.pex-abas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;margin-bottom:.5rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--ridge);border-radius:var(--r);padding:.22rem}
+.pex-aba{padding:.4rem .2rem;border:none;border-radius:calc(var(--r) - 3px);background:transparent;
+  color:var(--dust);font-size:.66rem;cursor:pointer;transition:background .16s,color .16s}
+.pex-aba:hover{color:var(--bone)}
+.pex-aba.on{background:rgba(74,222,128,.14);color:var(--bone);
+  box-shadow:inset 0 0 0 1px rgba(120,235,170,.35)}
+.pex-galeria{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.5rem}
+.pex-rodape{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}

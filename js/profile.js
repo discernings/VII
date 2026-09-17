@@ -298,11 +298,39 @@ function pexAttachInteracao(qual){
     alca.addEventListener('pointercancel',soltar,{once:true});
   });
 }
+/* Bordas do card de perfil — mesma ideia das molduras: a lista vem do banco
+   (tabela `border_presets`), então dá pra acrescentar bordas novas sem tocar
+   no código. Esta declaração tinha sido apagada por engano numa reescrita
+   anterior — era isso que fazia a pré-visualização nunca abrir: o clique
+   chamava uma função inexistente, o erro travava tudo antes de chegar na
+   linha que mostra o modal, e como o botão não captura esse erro, falhava
+   sem avisar nada. */
+let BORDER_PRESETS=[];
+async function loadBorderPresets(){
+  try{
+    const { data, error }=await getSupa().from('border_presets')
+      .select('url').eq('active',true).order('sort_order',{ascending:true});
+    if(error) throw error;
+    BORDER_PRESETS=(data||[]).map(r=>r.url).filter(Boolean);
+    localStorage.setItem('tfm_bordas_cache',JSON.stringify(BORDER_PRESETS));
+  }catch(e){
+    console.warn('Bordas: usando cópia local —',e.message);
+    try{ BORDER_PRESETS=JSON.parse(localStorage.getItem('tfm_bordas_cache')||'[]'); }
+    catch(_){ BORDER_PRESETS=[]; }
+  }
+}
 async function abrirPreviewEdit(){
-  await loadFramePresets(); await loadBorderPresets();
-  pexRenderTudo();
-  pexAttachInteracao('frame'); pexAttachInteracao('bordaTopo'); pexAttachInteracao('bordaBaixo');
-  pexAbrirAba(pexAba);
+  // Blindado: se a busca de imagens falhar por qualquer motivo, o modal ainda
+  // abre — é sempre pior ficar sem abrir nada do que abrir sem as galerias
+  // atualizadas. O clique era feito direto por onclick, sem quem capturasse
+  // um erro, então uma falha aqui antes travava tudo em silêncio.
+  try{ await loadFramePresets(); }catch(e){ console.error('loadFramePresets:',e); }
+  try{ await loadBorderPresets(); }catch(e){ console.error('loadBorderPresets:',e); }
+  try{
+    pexRenderTudo();
+    pexAttachInteracao('frame'); pexAttachInteracao('bordaTopo'); pexAttachInteracao('bordaBaixo');
+    pexAbrirAba(pexAba);
+  }catch(e){ console.error('abrirPreviewEdit:',e); }
   $('previewEditModal').classList.add('on');
 }
 

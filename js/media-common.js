@@ -118,14 +118,16 @@ function clearImg(){ pendImg=null; $('imgPrev').style.display='none'; $('imgFile
 /* ── TEMA + IDIOMA (painel Configurações) ── */
 function setTheme(t){
   const b=document.body;
-  b.classList.remove('light','eclipse');
+  b.classList.remove('light','eclipse','mono');
   if(t==='light') b.classList.add('light');
   else if(t==='eclipse') b.classList.add('eclipse');
+  else if(t==='mono') b.classList.add('mono');
   localStorage.setItem('tfm_theme',t);
   const opts=[...document.querySelectorAll('.theme-opt')];
-  opts.forEach(o=>o.classList.toggle('on',o.dataset.theme===t));
-  // move o realce deslizante para a opção escolhida
-  const idx=Math.max(0,opts.findIndex(o=>o.dataset.theme===t));
+  opts.forEach(o=>o.classList.toggle('on',o.dataset.theme===t||(t==='mono'&&o.dataset.theme==='eclipse')));
+  // move o realce deslizante para a opção escolhida (o modo secreto mora no mesmo lugar do eclipse)
+  const idxTema = t==='mono' ? 'eclipse' : t;
+  const idx=Math.max(0,opts.findIndex(o=>o.dataset.theme===idxTema));
   const gl=$('themeGlide');
   if(gl) gl.style.setProperty('--tgi','calc('+idx+' * (100% + 0px))');
 }
@@ -134,6 +136,41 @@ function toggleTheme(){ // mantido por compatibilidade com atalhos antigos
   setTheme(cur==='dark'?'light':cur==='light'?'eclipse':'dark');
 }
 function currentTheme(){ return localStorage.getItem('tfm_theme')||'dark'; }
+
+/* ══════════════════════════════════════════════════════════════════
+   MODO SECRETO — 4 toques rápidos no eclipse.
+   Uma vez descoberto, fica marcado pra sempre (localStorage): o botão passa a
+   mostrar o olho no lugar do eclipse, e um toque nele simplesmente ativa o
+   modo, como qualquer outro tema. Antes de descobrir, o botão funciona
+   normalmente — só conta os toques em silêncio, sem dar pista nenhuma.
+   ══════════════════════════════════════════════════════════════════ */
+let _toquesEclipse=0, _toqueEclipseTimer=null;
+function segredoDesbloqueado(){ return localStorage.getItem('tfm_segredo')==='1'; }
+function cliqueEclipse(){
+  if(segredoDesbloqueado()){ setTheme('mono'); return; }
+  _toquesEclipse++;
+  clearTimeout(_toqueEclipseTimer);
+  // a janela entre toques é curta de propósito — precisa ser um tamborilar
+  // rápido pra contar, não quatro cliques espaçados ao longo do dia
+  _toqueEclipseTimer=setTimeout(()=>{ _toquesEclipse=0; },900);
+  if(_toquesEclipse>=4){
+    _toquesEclipse=0; clearTimeout(_toqueEclipseTimer);
+    desbloquearSegredo();
+    return;
+  }
+  setTheme('eclipse');
+}
+function desbloquearSegredo(){
+  localStorage.setItem('tfm_segredo','1');
+  const btn=$('btnEclipse'); if(btn) btn.classList.add('virou-olho');
+  setTheme('mono');
+  toast('👁 encontrado.');
+}
+function aplicarAparenciaSegredo(){
+  // roda na abertura do app: se já foi descoberto antes, o botão já nasce como olho
+  if(!segredoDesbloqueado()) return;
+  const btn=$('btnEclipse'); if(btn) btn.classList.add('virou-olho');
+}
 function openPrefs(){
   $('prefsPanel').classList.add('on');
   setTheme(currentTheme());
@@ -380,7 +417,8 @@ function applyI18n(){
   const th=localStorage.getItem('tfm_theme');
   if(th==='light') document.body.classList.add('light');
   else if(th==='eclipse') document.body.classList.add('eclipse');
-  document.addEventListener('DOMContentLoaded',()=>{ applyI18n(); });
+  else if(th==='mono') document.body.classList.add('mono');
+  document.addEventListener('DOMContentLoaded',()=>{ applyI18n(); aplicarAparenciaSegredo(); });
 })();
 
 /* ── UNIVERSAL VIDEO ── */

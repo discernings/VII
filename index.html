@@ -21,6 +21,14 @@
 <div id="intro">
   <div class="il">there.fm</div>
   <div class="it">watch together, feel together</div>
+  <!-- Versão do modo secreto: um quadrado com o gif e um "V" discreto no
+       canto, no lugar da logo normal. Decidido e montado AQUI DENTRO, com
+       JS puro, porque esta tela roda antes de qualquer arquivo de js/
+       carregar — não dá pra chamar segredoDesbloqueado() daqui. -->
+  <div class="i-mono-sq" id="iMonoSq" style="display:none">
+    <img src="https://i.postimg.cc/d0WLYcdd/943c9f351186f1b98e3ed3bfb855c8e0.gif" alt="">
+    <span class="i-mono-v">V</span>
+  </div>
   <div class="ibar"></div>
 </div>
 <script>
@@ -32,6 +40,18 @@
 // depende de nenhum dos arquivos em js/, e garante que a intro sempre sai
 // de cena, aconteça o que acontecer com o resto do carregamento.
 (function(){
+  // lê o tema salvo direto do localStorage — os arquivos de js/ ainda não
+  // carregaram nesse instante, então currentTheme()/segredoDesbloqueado()
+  // ainda não existem; ler a chave direto é a única forma de saber aqui.
+  try{
+    if(localStorage.getItem('tfm_theme')==='mono'){
+      // .il e .it são CLASSES, não ids — corrigido para buscar do jeito certo
+      var logo=document.querySelector('#intro .il'), tag=document.querySelector('#intro .it');
+      if(logo) logo.style.display='none';
+      if(tag) tag.style.display='none';
+      var sq=document.getElementById('iMonoSq'); if(sq) sq.style.display='flex';
+    }
+  }catch(e){}
   function hideIntro(){
     var el=document.getElementById('intro'); if(!el) return;
     el.classList.add('out');
@@ -61,8 +81,6 @@
   </div>
   <button class="chat-fab main-more-btn" id="chatFab" onclick="toggleMainMoreMenu()" title="Conversas e Quadro">
     <span class="more-star">✴︎</span>
-    <!-- só aparece no modo secreto, no lugar da estrela -->
-    <img class="more-gif" src="https://i.postimg.cc/d0WLYcdd/943c9f351186f1b98e3ed3bfb855c8e0.gif" alt="">
     <span class="more-dot" id="mainMoreDot"></span>
   </button>
 </div>
@@ -137,14 +155,6 @@
 <!-- ── LANDING ── -->
 <div class="scene landing-scene" id="landingScene">
   <div class="lc">
-    <!-- Header "de designer" que troca de lugar com a logo normal quando o
-         modo secreto está ativo — some sozinho quando o tema muda de volta. -->
-    <div class="mono-intro">
-      <div class="mono-intro-sq">
-        <img src="https://i.postimg.cc/d0WLYcdd/943c9f351186f1b98e3ed3bfb855c8e0.gif" alt="">
-        <span class="mono-intro-v">V</span>
-      </div>
-    </div>
     <div class="llogo">there.fm</div>
     <p class="ltag">salas sincronizadas em tempo real<br>para assistir junto</p>
     <div class="linput">

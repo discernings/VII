@@ -103,6 +103,19 @@ body.mono{
   --green:#ffffff;--greeng:rgba(255,255,255,.16);--greend:#cccccc;
 }
 body.mono #bgCanvas{filter:grayscale(1)}
+/* Fundo especial das salas, só no modo secreto. O filtro preto-e-branco fica
+   restrito a um pseudo-elemento por trás de tudo (::before) — se colocássemos
+   o filtro na cena inteira, ele dessaturaria também vídeos e fotos de perfil
+   de quem está na sala, o que não é a intenção aqui. */
+body.mono .room-scene{background:var(--void)}
+body.mono .room-scene::before{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(10,10,10,.74), rgba(10,10,10,.88)),
+    url('https://i.postimg.cc/4NJym35G/af76952e8604cc8d4985e00e55e5fa83.jpg') center/cover fixed;
+  filter:grayscale(1) contrast(1.05);
+}
+body.mono .room-scene>*{position:relative;z-index:1}
 body.mono .llogo,body.mono .brand h1,body.mono .rtitle{color:#f5f5f5;text-shadow:none;animation:none}
 
 /* ícone do eclipse: some quando o segredo é descoberto, dá lugar ao olho */
@@ -178,6 +191,18 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--void);color:var
   background:linear-gradient(90deg,transparent,var(--green),transparent);
   animation:iBar .65s cubic-bezier(.16,1,.3,1) .6s both;will-change:transform}
 #intro .idots{display:none}
+/* Versão do modo secreto: o gif dentro de um quadrado "dinâmico" (flutua e
+   respira, discreto) com um "V" no canto, no lugar da logo — igual ao
+   cabeçalho de um portfólio de designer em preto e branco. */
+.i-mono-sq{position:relative;width:118px;height:118px;border-radius:14px;overflow:hidden;
+  background:#0a0a0a;border:1px solid rgba(255,255,255,.16);pointer-events:none;
+  box-shadow:0 18px 46px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset;
+  opacity:0;animation:iUp .7s cubic-bezier(.16,1,.3,1) .12s both,iMonoFloat 4.2s ease-in-out .8s infinite}
+.i-mono-sq img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.08)}
+.i-mono-v{position:absolute;right:.4rem;bottom:.3rem;font-family:'DM Sans',sans-serif;
+  font-size:.7rem;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.85);
+  text-shadow:0 1px 4px rgba(0,0,0,.9)}
+@keyframes iMonoFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(-1.2deg)}}
 @keyframes iUp{from{opacity:0;transform:translate3d(0,20px,0)}to{opacity:1;transform:none}}
 @keyframes iBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 #intro.out{animation:iOut .45s cubic-bezier(.4,0,1,1) both}
@@ -1606,23 +1631,3 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 .pex-abrir{display:inline-flex;align-items:center;gap:.4rem;align-self:flex-start;margin-top:.3rem}
 .pex-abrir svg{flex-shrink:0}
 
-/* ── ESTRELA DO MENU FLUTUANTE VIRA GIF NO MODO SECRETO ───────────────────── */
-.more-gif{display:none}
-body.mono .more-star{display:none}
-body.mono .more-gif{display:block;width:26px;height:26px;border-radius:50%;
-  object-fit:cover;border:1.5px solid rgba(255,255,255,.7)}
-
-/* ── HEADER "DE DESIGNER" NA INTRO, SÓ NO MODO SECRETO ───────────────────── */
-.mono-intro{display:none}
-body.mono .mono-intro{display:flex;justify-content:center;margin-bottom:1.1rem;animation:monoIn .7s var(--ease) both}
-body.mono .llogo,body.mono .ltag{display:none}
-.mono-intro-sq{position:relative;width:112px;height:112px;border-radius:14px;overflow:hidden;
-  background:#0a0a0a;border:1px solid rgba(255,255,255,.16);
-  box-shadow:0 18px 46px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset;
-  animation:monoFloat 4.5s ease-in-out infinite}
-.mono-intro-sq img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.08)}
-.mono-intro-v{position:absolute;right:.4rem;bottom:.3rem;font-family:'DM Sans',sans-serif;
-  font-size:.68rem;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.85);
-  text-shadow:0 1px 4px rgba(0,0,0,.9);opacity:.9}
-@keyframes monoIn{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
-@keyframes monoFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(-1.2deg)}}

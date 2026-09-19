@@ -147,7 +147,14 @@ function currentTheme(){ return localStorage.getItem('tfm_theme')||'dark'; }
 let _toquesEclipse=0, _toqueEclipseTimer=null;
 function segredoDesbloqueado(){ return localStorage.getItem('tfm_segredo')==='1'; }
 function cliqueEclipse(){
-  if(segredoDesbloqueado()){ setTheme('mono'); return; }
+  /* CORRIGIDO — antes, uma vez descoberto o segredo, todo clique aqui forçava
+     o modo mono pra sempre, sem nenhum jeito de voltar ao eclipse normal por
+     este mesmo botão. Agora ele alterna: clicar de novo enquanto já está no
+     modo secreto volta para o eclipse comum. */
+  if(segredoDesbloqueado()){
+    setTheme(currentTheme()==='mono' ? 'eclipse' : 'mono');
+    return;
+  }
   _toquesEclipse++;
   clearTimeout(_toqueEclipseTimer);
   // a janela entre toques é curta de propósito — precisa ser um tamborilar

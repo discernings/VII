@@ -130,6 +130,12 @@ function setTheme(t){
   const idx=Math.max(0,opts.findIndex(o=>o.dataset.theme===idxTema));
   const gl=$('themeGlide');
   if(gl) gl.style.setProperty('--tgi','calc('+idx+' * (100% + 0px))');
+  /* CORRIGIDO — o ícone de olho ficava marcado pra sempre depois de
+     descoberto, mesmo trocando para claro/escuro. Agora ele reflete o tema
+     que está de fato ativo: só aparece como olho enquanto o modo secreto
+     estiver realmente selecionado, e volta a ser a lua normal em qualquer
+     outro tema — inclusive no eclipse comum. */
+  const btnEcl=$('btnEclipse'); if(btnEcl) btnEcl.classList.toggle('virou-olho', t==='mono');
 }
 function toggleTheme(){ // mantido por compatibilidade com atalhos antigos
   const cur=localStorage.getItem('tfm_theme')||'dark';
@@ -169,14 +175,16 @@ function cliqueEclipse(){
 }
 function desbloquearSegredo(){
   localStorage.setItem('tfm_segredo','1');
-  const btn=$('btnEclipse'); if(btn) btn.classList.add('virou-olho');
-  setTheme('mono');
+  setTheme('mono');   // já cuida de marcar o ícone como olho (ver dentro de setTheme)
   toast('👁 encontrado.');
 }
+/* Roda na abertura do app: o ícone precisa nascer já no estado certo — olho
+   se a última escolha salva foi o modo secreto, lua normal em qualquer outro
+   caso. Não depende de "já foi descoberto alguma vez", e sim do tema atual —
+   é o mesmo critério usado dentro de setTheme(), pra nunca haver divergência
+   entre os dois. */
 function aplicarAparenciaSegredo(){
-  // roda na abertura do app: se já foi descoberto antes, o botão já nasce como olho
-  if(!segredoDesbloqueado()) return;
-  const btn=$('btnEclipse'); if(btn) btn.classList.add('virou-olho');
+  const btn=$('btnEclipse'); if(btn) btn.classList.toggle('virou-olho', currentTheme()==='mono');
 }
 function openPrefs(){
   $('prefsPanel').classList.add('on');

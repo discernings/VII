@@ -103,19 +103,28 @@ body.mono{
   --green:#ffffff;--greeng:rgba(255,255,255,.16);--greend:#cccccc;
 }
 body.mono #bgCanvas{filter:grayscale(1)}
-/* Fundo especial das salas, só no modo secreto. O filtro preto-e-branco fica
-   restrito a um pseudo-elemento por trás de tudo (::before) — se colocássemos
-   o filtro na cena inteira, ele dessaturaria também vídeos e fotos de perfil
-   de quem está na sala, o que não é a intenção aqui. */
-body.mono .room-scene{background:var(--void)}
-body.mono .room-scene::before{
+/* CORRIGIDO — eu tinha colocado o fundo secreto num pseudo-elemento atrás de
+   toda a cena da sala, mas quem realmente mostra a imagem de fundo é o #cw
+   (a área principal, embaixo do cabeçalho e da barra de ferramentas), que já
+   tem SUA PRÓPRIA imagem fixada diretamente nele. Como #cw é um elemento
+   normal, opaco, por cima na ordem de pintura, ele cobria completamente o meu
+   pseudo-elemento — a imagem secreta nunca tinha chance de aparecer. A
+   correção certa é trocar a imagem no mesmo lugar onde ela já é definida. */
+/* O filtro fica só no pseudo-elemento de fundo (::before), nunca no #cw
+   inteiro — #cw é onde os vídeos, notas e imagens de todo mundo são
+   desenhados, e um filtro no elemento pai dessatura tudo dentro dele junto.
+   #cw já tem position:relative, então o ::before fica atrás por conta da
+   ordem natural: ele nasce antes de qualquer conteúdo real no documento. */
+body.mono #cw::before{
   content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
   background:
-    linear-gradient(180deg, rgba(10,10,10,.74), rgba(10,10,10,.88)),
-    url('https://i.postimg.cc/4NJym35G/af76952e8604cc8d4985e00e55e5fa83.jpg') center/cover fixed;
+    linear-gradient(180deg, rgba(10,10,10,.5), rgba(10,10,10,.68)),
+    url('https://i.postimg.cc/4NJym35G/af76952e8604cc8d4985e00e55e5fa83.jpg') center/cover;
   filter:grayscale(1) contrast(1.05);
 }
-body.mono .room-scene>*{position:relative;z-index:1}
+/* apaga a imagem colorida original do #cw só nesse modo — sem isso ela
+   continuaria por baixo do próprio ::before, sem necessidade */
+body.mono #cw{background-image:none}
 body.mono .llogo,body.mono .brand h1,body.mono .rtitle{color:#f5f5f5;text-shadow:none;animation:none}
 
 /* ícone do eclipse: some quando o segredo é descoberto, dá lugar ao olho */

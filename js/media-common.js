@@ -152,15 +152,13 @@ function currentTheme(){ return localStorage.getItem('tfm_theme')||'dark'; }
    ══════════════════════════════════════════════════════════════════ */
 let _toquesEclipse=0, _toqueEclipseTimer=null;
 function segredoDesbloqueado(){ return localStorage.getItem('tfm_segredo')==='1'; }
+/* CORRIGIDO — antes, uma vez descoberto o segredo uma primeira vez, o botão
+   ficava permanentemente "destravado", e um único toque passava a alternar
+   pro modo secreto. Não é assim que devia funcionar: um toque deve SEMPRE
+   selecionar o eclipse normal, igual aos outros temas — não existe estado de
+   "destravado pra sempre". A única porta pro modo secreto é o mesmo ritual
+   de sempre: 4 toques rápidos, toda vez que você quiser entrar nele de novo. */
 function cliqueEclipse(){
-  /* CORRIGIDO — antes, uma vez descoberto o segredo, todo clique aqui forçava
-     o modo mono pra sempre, sem nenhum jeito de voltar ao eclipse normal por
-     este mesmo botão. Agora ele alterna: clicar de novo enquanto já está no
-     modo secreto volta para o eclipse comum. */
-  if(segredoDesbloqueado()){
-    setTheme(currentTheme()==='mono' ? 'eclipse' : 'mono');
-    return;
-  }
   _toquesEclipse++;
   clearTimeout(_toqueEclipseTimer);
   // a janela entre toques é curta de propósito — precisa ser um tamborilar
@@ -168,15 +166,20 @@ function cliqueEclipse(){
   _toqueEclipseTimer=setTimeout(()=>{ _toquesEclipse=0; },900);
   if(_toquesEclipse>=4){
     _toquesEclipse=0; clearTimeout(_toqueEclipseTimer);
-    desbloquearSegredo();
+    ativarSegredo();
     return;
   }
   setTheme('eclipse');
 }
-function desbloquearSegredo(){
+/* Não é mais um "destravar pra sempre" — é só o gatilho do ritual, chamado
+   toda vez que os 4 toques rápidos se completam. tfm_segredo continua
+   guardado só para a mensagem saber se é a primeira vez ou não; não governa
+   mais nenhum comportamento de clique. */
+function ativarSegredo(){
+  const primeiraVez=!segredoDesbloqueado();
   localStorage.setItem('tfm_segredo','1');
   setTheme('mono');   // já cuida de marcar o ícone como olho (ver dentro de setTheme)
-  toast('👁 encontrado.');
+  toast(primeiraVez ? '👁 encontrado.' : '👁');
 }
 /* Roda na abertura do app: o ícone precisa nascer já no estado certo — olho
    se a última escolha salva foi o modo secreto, lua normal em qualquer outro

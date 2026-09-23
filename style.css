@@ -497,9 +497,7 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 .board-edge.sel{stroke:rgba(230,160,185,1);stroke-width:3.4}
 .board-edge-hit{cursor:pointer}
 .board-edge-hit:hover+.board-edge{stroke:rgba(230,160,185,.9);stroke-width:3.2}
-.board-edge-handle{fill:rgba(22,11,20,.9);stroke:rgba(217,122,154,.9);stroke-width:2;opacity:0;cursor:grab;transition:opacity .15s}
-.board-edge-handle.show{opacity:1}
-.board-edge-handle:hover{fill:rgba(217,122,154,.35)}
+
 .board-edge-handle:active{cursor:grabbing}
 .board-edge-del{cursor:pointer}
 /* Ancorado à JANELA, não à área do quadro.
@@ -1389,8 +1387,13 @@ body.in-room .vol-wrap{display:flex}
   background:linear-gradient(140deg,var(--green),rgba(217,122,154,.35),var(--green))}
 
 /* ── CONECTORES ───────────────────── */
-/* alça de curvatura mais visível e fácil de pegar */
-.board-edge-handle{r:8;fill:rgba(22,11,20,.92);stroke:rgba(230,160,185,.95);stroke-width:2.4}
+/* Alça de curvatura — regra única (havia duas competindo, uma delas sem
+   touch-action, o que deixava um toque bem no centro do pontinho visível
+   disputar com o gesto de rolagem do navegador em vez de ir direto para o
+   arrasto). opacity:0 por padrão, .show a revela quando o conector está
+   selecionado. */
+.board-edge-handle{r:8;fill:rgba(22,11,20,.92);stroke:rgba(230,160,185,.95);
+  stroke-width:2.4;opacity:0;cursor:grab;touch-action:none;transition:opacity .15s}
 .board-edge-handle.show{opacity:1}
 .board-edge-handle:hover{fill:rgba(217,122,154,.4)}
 

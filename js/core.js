@@ -43,7 +43,55 @@ let _vtTimers = {}; // uid -> id do setInterval que atualiza o tempo exibido (li
 let ytReady  = false;
 let activeVideoCardId = null; // itemId do card de vídeo único que é reaproveitado (não abre outro item a cada vídeo novo)
 let activeMusicCardId = null; // itemId do card de música único, mesma lógica
-let desiredPlaying = {};      // uid -> true/false: o que deveria estar tocando (usado pra "curar" pausas sozinhas)
+/* ══════════════════════════════════════════════════════════════════
+   SESSÃO DE MÍDIA DO NAVEGADOR — é o que faltava pra vídeo/música
+   sobreviverem em segundo plano igual à chamada já sobrevivia.
+   A chamada usa áudio puro (sem elemento <video> visível), e o Chromium
+   trata isso como conteúdo de comunicação, que ele deixa tocando mesmo com a
+   página escondida. Vídeo e música, sem essa API, ficam sem nenhum sinal de
+   que o áudio deles é "de propósito" — e o navegador os pausa por segurança
+   quando a aba/WebView sai de tela, como faz com qualquer vídeo esquecido
+   aberto ao fundo. A API de Sessão de Mídia é o sinal que faltava: com ela,
+   o navegador sabe que é reprodução legítima e deixa continuar.
+   Como o "tocando/pausado" de cada player é escrito em mais de dez lugares
+   espalhados pelo código (um bloco por tipo de player — YouTube, Vimeo,
+   Twitch, HTML5, música), um Proxy captura QUALQUER mudança automaticamente,
+   sem precisar tocar em cada um desses pontos. */
+function observarReproducao(obj){
+  return new Proxy(obj, {
+    set(alvo,prop,valor){ alvo[prop]=valor; try{ atualizarMediaSession(); }catch(e){} return true; }
+  });
+}
+function uidAtivo(){
+  for(const k in desiredPlaying) if(desiredPlaying[k]) return k;
+  if(typeof mPlaying==='object') for(const k in mPlaying) if(mPlaying[k]) return k;
+  return null;
+}
+function atualizarMediaSession(){
+  if(!('mediaSession' in navigator)) return;
+  try{
+    const tocando = !!uidAtivo() || (typeof callActive!=='undefined' && callActive);
+    navigator.mediaSession.playbackState = tocando ? 'playing' : 'paused';
+    if(tocando && !navigator.mediaSession.metadata){
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title:'there.fm',
+        artist: (typeof room!=='undefined' && room && room.code) ? ('sala '+room.code) : 'assistindo junto'
+      });
+    }
+  }catch(e){}
+}
+function initMediaSessionActions(){
+  if(!('mediaSession' in navigator)) return;
+  try{
+    navigator.mediaSession.setActionHandler('play',()=>{
+      const uid=uidAtivo(); const p=uid&&ytPlrs[uid]; if(p) p.playVideo();
+    });
+    navigator.mediaSession.setActionHandler('pause',()=>{
+      const uid=uidAtivo(); const p=uid&&ytPlrs[uid]; if(p) p.pauseVideo();
+    });
+  }catch(e){}
+}
+let desiredPlaying = observarReproducao({});  // uid -> true/false: o que deveria estar tocando (usado pra "curar" pausas sozinhas)
 let _syncSuppress   = {};     // uid -> true enquanto aplicamos uma sync recebida (evita eco/loop de broadcast)
 let gifMode  = 'canvas';
 let tbPos    = 'top';
@@ -133,6 +181,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   safeInit('buildDrawColors',   buildDrawColors);
   // a galeria de molduras agora só é montada dentro de abrirPreviewEdit(); aqui só pré-aquecemos a busca
   safeInit('loadFramePresets',  ()=>{ loadFramePresets().catch(e=>console.error('[boot] loadFramePresets:',e)); });
+  safeInit('mediaSessionActions', initMediaSessionActions);   // controles de tocar/pausar na tela de bloqueio/notificação
   safeInit('ytUpdateLoginUI',   ytUpdateLoginUI);
   safeInit('initProfileSystem', initProfileSystem);
   safeInit('checkAuth',         checkAuth);

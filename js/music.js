@@ -178,7 +178,7 @@ function mkMusicCard(vid,title,artist,thumb,x,y,id,container,emit){
   if(emit) broadcast({type:'ADD_ITEM',item:{type:'music',vid,title,artist,thumb,x,y,id}});
   setTimeout(()=>initMusicYT(uid,vid),300);
 }
-let mPlaying={};
+let mPlaying=observarReproducao({});  // mesma ponte de sessão de mídia usada pelo vídeo (ver js/core.js)
 function initMusicYT(uid,vid){
   const cont=document.getElementById('mypc-'+uid); if(!cont||cont.dataset.ytinit)return; cont.dataset.ytinit='1';
   const origin=location.origin||'https://localhost';

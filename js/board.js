@@ -1012,13 +1012,24 @@ function startEdgeBend(e,id){
     edge.bend_x=bx; edge.bend_y=by;
     scheduleEdgeRedraw([id]);   // redesenha só este conector
   };
+  /* CORRIGIDO — faltava escutar 'pointercancel' aqui, e era o único lugar do
+     quadro com essa falta (arrastar nota, redimensionar nota e mover o quadro
+     todos já escutavam os dois). No celular, o navegador cancela o toque no
+     meio do gesto com uma frequência real — sempre que desconfia que pode ser
+     um scroll. Sem 'pointercancel', o 'soltar' nunca rodava, e o pointermove
+     preso no document continuava respondendo a QUALQUER toque seguinte na
+     tela, distorcendo curvas mesmo sem você ter tocado nelas. Isso explica
+     "mal dá pra mexer": um gesto cancelado deixava o conector seguinte —
+     ou qualquer um — reagindo a toques que não eram dele. */
   const up=()=>{
     document.removeEventListener('pointermove',move);
     document.removeEventListener('pointerup',up);
+    document.removeEventListener('pointercancel',up);
     boardEdgeDrag=null; saveEdgeBend(id); scheduleEdgeRedraw([id]);
   };
   document.addEventListener('pointermove',move);
   document.addEventListener('pointerup',up);
+  document.addEventListener('pointercancel',up);
 }
 function resetEdgeBend(id){
   const edge=boardEdges[id]; if(!edge) return;

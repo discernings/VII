@@ -300,7 +300,12 @@ body.light .bp{background:linear-gradient(135deg,#8a2f52,#4a1830);color:#fff;box
 .toolbar.tb-left .tbtn,.toolbar.tb-right .tbtn{padding:.43rem;justify-content:center;width:34px;height:34px}
 .toolbar.tb-left .tgrp,.toolbar.tb-right .tgrp{flex-direction:column}
 .rbody{flex:1;display:flex;overflow:hidden;position:relative;min-height:0}
-.tlbl{color:var(--shadow);font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;flex-shrink:0}
+/* CORRIGIDO — usava var(--shadow) como cor de TEXTO. Essa variável guarda um
+   tom bem escuro, pensado pra sombras/glows, não pra ser lido — contra o
+   fundo escuro da barra, o rótulo do grupo ficava praticamente invisível. Por
+   isso "Adicionar" e "Desenho" não apareciam na prática, mesmo estando no
+   HTML o tempo todo. */
+.tlbl{color:var(--dust);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;flex-shrink:0}
 .tdiv{width:1px;height:20px;background:var(--ridge);flex-shrink:0}
 .toolbar.tb-left .tdiv,.toolbar.tb-right .tdiv{width:28px;height:1px}
 .tgrp{display:flex;gap:.38rem;align-items:center;flex-shrink:0}
@@ -468,10 +473,32 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 /* ── QUADRO COLABORATIVO (estilo Miro) ── */
 .board-ov{display:none;position:fixed;inset:0;z-index:3200;flex-direction:column;background:var(--void)}
 .board-ov.on{display:flex}
-.board-top{display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;border-bottom:1px solid var(--ridge);background:rgba(20,10,18,.97);flex-wrap:wrap;flex-shrink:0}
-.board-title{font-family:'DM Sans',sans-serif;font-size:1rem;color:var(--bone);margin:0;flex-shrink:0}
-.board-tools{display:flex;gap:.4rem;flex-wrap:wrap;flex:1}
-.board-tools .btn{padding:.4rem .7rem;font-size:.76rem}
+/* Redesenho minimalista: as três ações vivem dentro de UM bloco coeso, com
+   divisores finos entre elas — em vez de três botões soltos flutuando com
+   vãos no meio, que é o que dava aquela sensação de vazio/jogado. */
+.board-top{display:flex;align-items:center;gap:.7rem;padding:.65rem .9rem;
+  border-bottom:1px solid var(--ridge);background:var(--void);flex-wrap:wrap;flex-shrink:0}
+.board-title{font-family:'DM Sans',sans-serif;font-weight:700;font-size:.98rem;
+  color:var(--bone);margin:0;flex-shrink:0;position:relative;padding-left:.65rem}
+/* pontinho de acento antes do título — um toque de identidade, discreto */
+.board-title::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.board-tools{display:flex;align-items:center;gap:.15rem;flex:1;flex-wrap:wrap;
+  background:var(--mist);border:1px solid var(--ridge);border-radius:var(--rm);padding:.2rem}
+.board-act{display:inline-flex;align-items:center;gap:.35rem;padding:.42rem .7rem;
+  background:transparent;border:none;border-radius:calc(var(--rm) - 3px);color:var(--ash);
+  font-size:.76rem;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;
+  transition:background .15s,color .15s}
+.board-act:hover{background:var(--greeng);color:var(--bone)}
+.board-act.on{background:var(--green);color:#fff}
+.board-act svg{flex-shrink:0}
+.board-act-div{width:1px;height:16px;background:var(--ridge);flex-shrink:0}
+/* Fechar tem peso visual menor de propósito — não é uma ação igual às outras,
+   é a saída, e não deveria competir por atenção com elas */
+.board-close{background:none;border:none;color:var(--dust);font-size:.78rem;
+  font-family:'DM Sans',sans-serif;cursor:pointer;padding:.4rem .5rem;
+  transition:color .15s;flex-shrink:0}
+.board-close:hover{color:var(--bone)}
 #boardConnectBtn.on{background:rgba(217,122,154,.22);border-color:rgba(217,122,154,.5);color:var(--bone)}
 .board-hint{padding:.4rem .9rem;font-size:.76rem;color:var(--ash);background:rgba(217,122,154,.08);border-bottom:1px solid var(--ridge);font-style:italic;font-family:'Cormorant Garamond',serif;flex-shrink:0}
 .board-outer{flex:1;overflow:hidden;position:relative;touch-action:none;cursor:default;
@@ -601,7 +628,12 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 .fhub-tab{flex:1;padding:.5rem .6rem;border-radius:var(--rm);border:1px solid var(--ridge);background:rgba(255,255,255,.03);color:var(--ash);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem;font-family:'DM Sans',sans-serif}
 .fhub-tab.active{background:var(--greeng);border-color:var(--green);color:var(--bone)}
 .tab-badge{display:none;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--crimson);color:#fff;font-size:.62rem;font-weight:700;align-items:center;justify-content:center}
-.fhub-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.35rem;min-height:0}
+/* CORRIGIDO — flex:1 forçava a lista a esticar e preencher todo o espaço
+   vertical do modal, não importa quantos itens existissem. Com só 2
+   conversas, isso deixava um vazio enorme por baixo delas. Agora a lista só
+   ocupa o espaço do próprio conteúdo, com um teto — se tiver muita coisa,
+   ainda rola normalmente; se tiver pouca, o modal encolhe junto. */
+.fhub-list{max-height:min(60vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:.3rem;min-height:0}
 .fhub-row{display:flex;align-items:center;gap:.65rem;padding:.55rem .6rem;border-radius:var(--r);cursor:pointer;transition:background .15s;border:1px solid transparent}
 .fhub-row:hover{background:rgba(255,255,255,.05);border-color:var(--ridge)}
 .fhub-av{position:relative;width:42px;height:42px;flex-shrink:0;border-radius:50%}
@@ -611,11 +643,18 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 .fhub-acts{display:flex;gap:.35rem;flex-shrink:0}
 .fhub-acts .btn{padding:.35rem .6rem;font-size:.72rem}
 /* Avatar ao lado do balão nas conversas (DM) */
-.dm-row{display:flex;align-items:flex-end;gap:.4rem;margin:.2rem 0}
+.dm-row{display:flex;align-items:flex-end;gap:.45rem;margin:.25rem 0}
 .dm-row.mine{flex-direction:row-reverse}
 .dm-av{position:relative;width:26px;height:26px;flex-shrink:0;border-radius:50%}
-.dm-bubble{max-width:74%;padding:.5rem .7rem;border-radius:12px;font-size:.85rem;line-height:1.35;word-break:break-word;background:rgba(255,255,255,.08);color:var(--bone)}
-.dm-bubble.mine{background:var(--green,#2f6d4f);color:#0b120e}
+/* A moldura decorativa, nesse tamanho minúsculo e repetida a cada mensagem,
+   virava só uma bagunça de bordas ao redor de um circulozinho — não dá pra
+   apreciar a moldura nesse tamanho, só some no barulho visual. Fica só a
+   foto, sem a moldura, aqui especificamente. */
+.dm-av .frame-overlay{display:none}
+.dm-bubble{max-width:72%;padding:.55rem .75rem;border-radius:14px;font-size:.85rem;
+  line-height:1.4;word-break:break-word;background:var(--mist);color:var(--bone);
+  border:1px solid var(--ridge)}
+.dm-bubble.mine{background:var(--green);color:#fff;border-color:transparent}
 .member-row:hover{background:rgba(255,255,255,.05);border-color:rgba(217,122,154,.15)}
 .member-av{position:relative;width:44px;height:44px;flex-shrink:0;border-radius:50%}
 .member-lbl{display:flex;flex-direction:column;min-width:0;flex:1}
@@ -1643,3 +1682,8 @@ body.board-digitando .board-zoom{opacity:0;transform:translateY(14px);pointer-ev
 .pex-abrir{display:inline-flex;align-items:center;gap:.4rem;align-self:flex-start;margin-top:.3rem}
 .pex-abrir svg{flex-shrink:0}
 
+
+.dm-modal-title{font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;
+  color:var(--bone);margin:0;position:relative;padding-left:.65rem}
+.dm-modal-title::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}

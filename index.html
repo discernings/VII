@@ -91,14 +91,25 @@
     <h2 class="board-title" data-i18n="board.title">Quadro</h2>
     <div class="board-tools">
       <div class="nota-wrap">
-        <button class="btn bg2 bsm" onclick="abrirSeletorCorNota()" title="Escolher cor e criar nota" data-i18n="board.note">+ Nota</button>
+        <button class="board-act" onclick="abrirSeletorCorNota()" title="Escolher cor e criar nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+          <span data-i18n="board.note">Nota</span>
+        </button>
         <div class="nota-cores" id="notaCores"></div>
       </div>
-      <button class="btn bg2 bsm" onclick="$('boardImgFile').click()" data-i18n="board.img">+ Imagem</button>
+      <span class="board-act-div"></span>
+      <button class="board-act" onclick="$('boardImgFile').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5-5L5 21"/></svg>
+        <span data-i18n="board.img">Imagem</span>
+      </button>
       <input type="file" id="boardImgFile" accept="image/*" style="display:none" onchange="handleBoardImage(this)">
-      <button class="btn bg2 bsm" id="boardConnectBtn" onclick="toggleBoardConnect()">🔗 Conectar</button>
+      <span class="board-act-div"></span>
+      <button class="board-act" id="boardConnectBtn" onclick="toggleBoardConnect()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M9 15l6-6M8.5 8.5L7 7a3.5 3.5 0 000 5l1 1M15.5 15.5l1.5 1.5a3.5 3.5 0 000-5l-1-1"/></svg>
+        <span data-i18n="board.connect">Conectar</span>
+      </button>
     </div>
-    <button class="btn bg2 bsm" onclick="closeBoard()" data-i18n="act.close">Fechar</button>
+    <button class="board-close" onclick="closeBoard()" data-i18n="act.close">Fechar</button>
   </div>
   <div class="board-hint" id="boardHint" style="display:none">Clique em duas notas para ligá-las. Use o ⤳ no topo de uma nota para conectar direto. Esc sai do modo.</div>
   <div class="board-outer" id="boardOuter">
@@ -679,13 +690,15 @@
 <!-- Mensagem Privada -->
 <div class="modal" id="dmModal">
   <div class="mbox" style="max-width:420px;width:calc(100% - 2rem);display:flex;flex-direction:column;max-height:80vh">
-    <h2 id="dmTitle" style="margin:0 0 .6rem" data-i18n="nav.chat">Conversa</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem">
+      <h2 id="dmTitle" class="dm-modal-title" data-i18n="nav.chat">Conversa</h2>
+      <button class="board-close" onclick="closeDM()" data-i18n="act.close">Fechar</button>
+    </div>
     <div id="dmMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:220px;max-height:50vh;padding:.3rem 0"></div>
     <div style="display:flex;gap:.5rem;margin-top:.6rem">
       <input class="mi" id="dmInput" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter')sendDM()">
       <button class="btn bp bsm" onclick="sendDM()" data-i18n="act.send">Enviar</button>
     </div>
-    <div class="mact"><button class="btn bg2" onclick="closeDM()" data-i18n="act.close">Fechar</button></div>
   </div>
 </div>
 

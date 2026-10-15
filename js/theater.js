@@ -192,11 +192,29 @@ function aguardarLayoutEEncaixar(tentativa){
 
 /* Aguarda a página carregar e o vídeo aparecer, e só então encaixa no card.
    Sem isso, o encaixe era tentado com a página ainda em branco. */
+/* CORRIGIDO — duas queixas reais vinham desta mesma função, e as duas têm a
+   mesma raiz: o navegador ficava VISÍVEL o tempo inteiro enquanto esperava o
+   vídeo aparecer, e desistia depois de só ~12s.
+   Sites com bastante anúncio e redirecionamento — exatamente o tipo que esse
+   recurso mais precisa suportar — não raro levam mais que isso só para
+   terminar a cadeia de anúncios antes de chegar no vídeo de verdade. Quem
+   abriu a sessão geralmente interage com a página (fecha um anúncio, clica
+   em play) sem perceber; quem só está recebendo nunca toca em nada, então a
+   espera precisa ser bem mais paciente — e invisível, porque ninguém pediu
+   pra "navegar", só pra ver o vídeo sincronizado.
+   A correção: esconde a janela logo (alguns segundos bastam pra página
+   começar a carregar) e continua procurando o vídeo por baixo dos panos por
+   bem mais tempo. Esconder não pausa nada — a página continua carregando
+   normalmente, só não fica visível. Se o vídeo aparecer depois, mesmo
+   escondido, o encaixe acontece automaticamente, sem precisar de nenhum
+   toque. */
 function esperarVideoEEncaixar(tentativa){
   tentativa=tentativa||0;
   if(theaterState.found){ aguardarLayoutEEncaixar(); return; }
-  if(tentativa>40){                     // ~12s: página lenta ou sem vídeo
-    if(Theater){ try{ Theater.hide(); }catch(e){} }
+  // some de vista cedo — por volta de 3s já dá pra página começar a carregar,
+  // sem deixar a pessoa olhando uma navegação que não pediu
+  if(tentativa===10 && Theater){ try{ Theater.hide(); }catch(e){} }
+  if(tentativa>200){                    // ~60s no total: bem mais paciente com anúncios/redirecionamentos
     const card=qs('[data-ytuid="'+theaterUid+'"]');
     if(card){
       const s=card.querySelector('.theater-sub');

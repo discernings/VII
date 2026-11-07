@@ -119,6 +119,7 @@ function clearImg(){ pendImg=null; $('imgPrev').style.display='none'; $('imgFile
 function setTheme(t){
   const b=document.body;
   b.classList.remove('light','eclipse','mono');
+  if(t!=='mono') b.classList.remove('glitch');   // glitch só existe por cima do Armageddon
   if(t==='light') b.classList.add('light');
   else if(t==='eclipse') b.classList.add('eclipse');
   else if(t==='mono') b.classList.add('mono');
@@ -158,7 +159,18 @@ function segredoDesbloqueado(){ return localStorage.getItem('tfm_segredo')==='1'
    selecionar o eclipse normal, igual aos outros temas — não existe estado de
    "destravado pra sempre". A única porta pro modo secreto é o mesmo ritual
    de sempre: 4 toques rápidos, toda vez que você quiser entrar nele de novo. */
+let _entrouArmageddonEm=0;
 function cliqueEclipse(){
+  /* Já dentro do Armageddon: mais um toque liga/desliga o MODO GLITCH, uma
+     camada extra por cima. Fica ignorado por ~1,2s logo depois de entrar —
+     quem tamborila pra abrir o modo secreto pode passar de 4 toques sem
+     querer, e esse toque a mais não pode ligar o glitch sozinho. */
+  if(currentTheme()==='mono'){
+    if(Date.now()-_entrouArmageddonEm<1200) return;
+    const ligado=document.body.classList.toggle('glitch');
+    toast(ligado?'modo glitch':'modo glitch desligado');
+    return;
+  }
   _toquesEclipse++;
   clearTimeout(_toqueEclipseTimer);
   // a janela entre toques é curta de propósito — precisa ser um tamborilar
@@ -178,8 +190,9 @@ function cliqueEclipse(){
 function ativarSegredo(){
   const primeiraVez=!segredoDesbloqueado();
   localStorage.setItem('tfm_segredo','1');
+  _entrouArmageddonEm=Date.now();
   setTheme('mono');   // já cuida de marcar o ícone como olho (ver dentro de setTheme)
-  toast(primeiraVez ? '👁 encontrado.' : '👁');
+  toast(primeiraVez ? 'Armageddon desbloqueado' : 'Armageddon');
 }
 /* Roda na abertura do app: o ícone precisa nascer já no estado certo — olho
    se a última escolha salva foi o modo secreto, lua normal em qualquer outro
@@ -221,8 +234,8 @@ const I18N={
     'auth.has':"Já tem conta?",
     'auth.signup':"Criar Conta",
     'board.connect':"Conectar",
-    'board.img':"+ Imagem",
-    'board.note':"+ Nota",
+    'board.img':"Imagem",
+    'board.note':"Nota",
     'board.title':"Quadro",
     'call.join':"Entrar na chamada",
     'call.title':"Chamada de voz",
@@ -300,8 +313,8 @@ const I18N={
     'auth.has':"Already have an account?",
     'auth.signup':"Create account",
     'board.connect':"Connect",
-    'board.img':"+ Image",
-    'board.note':"+ Note",
+    'board.img':"Image",
+    'board.note':"Note",
     'board.title':"Board",
     'call.join':"Join call",
     'call.title':"Voice call",

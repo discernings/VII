@@ -15,7 +15,7 @@
   --ease:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.34,1.56,.64,1);
   --r:6px;--rm:10px;--rl:16px;--rxl:22px;
   --green:#d97a9a;--greeng:rgba(217,122,154,.18);--greend:#6d3c52;
-  --accent:#d97a9a;--accentg:rgba(217,122,154,.15);
+  --accent:#d97a9a;--accentg:rgba(217,122,154,.15);--on-accent:#fff;
 }
 /* ── LIGHT THEME ────────────────────────── */
 body.light{
@@ -25,7 +25,7 @@ body.light{
   --gold:#8a2f52;--gg:rgba(138,47,82,.15);--silver:#6d4353;
   --glass:rgba(250,220,213,.88);--ghost:rgba(45,21,32,.06);
   --accent:#8a2f52;--accentg:rgba(138,47,82,.15);
-  --green:#8a2f52;
+  --green:#8a2f52;--on-accent:#fff;
 }
 /* Light mode — override hardcoded dark bg values */
 body.light .rh{background:rgba(200,235,215,.82)!important}
@@ -38,7 +38,7 @@ body.light .ct{color:var(--ash)}
 body.light .vctrl{background:rgba(185,228,205,.9)!important;border-color:rgba(138,47,82,.12)!important}
 body.light .tbtn{background:rgba(255,255,255,.4)!important;border-color:rgba(138,47,82,.25)!important;color:var(--bone)!important}
 body.light .tbtn:hover{background:rgba(138,47,82,.15)!important;color:var(--bone)!important}
-body.light .tbtn.active{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+body.light .tbtn.active{background:var(--green)!important;border-color:var(--green)!important;color:var(--on-accent)!important}
 body.light .inp,.body.light .mi,.body.light .si{background:rgba(255,255,255,.55)!important;color:var(--bone)!important}
 body.light .inp::placeholder,.body.light .mi::placeholder,.body.light .si::placeholder{color:var(--shadow)!important}
 body.light .msgbar{background:rgba(200,238,218,.95)!important;border-color:rgba(138,47,82,.22)!important}
@@ -71,9 +71,9 @@ body.light .rcode{background:rgba(255,255,255,.3)!important;border-color:rgba(13
 body.light .sphoto{background:linear-gradient(135deg,var(--green),#6d3c52)!important}
 body.light .fhub-row:hover{background:rgba(138,47,82,.1)!important}
 body.light .fhub-tab{background:rgba(255,255,255,.35)!important;border-color:rgba(138,47,82,.2)!important;color:var(--bone)!important}
-body.light .fhub-tab.active{background:var(--green)!important;color:#fff!important}
+body.light .fhub-tab.active{background:var(--green)!important;color:var(--on-accent)!important}
 body.light .dm-bubble{background:rgba(255,255,255,.5)!important;color:var(--bone)!important}
-body.light .dm-bubble.mine{background:var(--green)!important;color:#fff!important}
+body.light .dm-bubble.mine{background:var(--green)!important;color:var(--on-accent)!important}
 /* ── ECLIPSE THEME ────────────────────────── */
 /* Eclipse continua sendo o modo "quente", só que a cor mudou de laranja puro
    pra um terracota-rosado — dessa forma ele fica dentro da mesma família da
@@ -85,7 +85,7 @@ body.eclipse{
   --gold:#e8735a;--gg:rgba(232,115,90,.15);--silver:#c98a72;
   --glass:rgba(23,10,18,.92);--ghost:rgba(232,115,90,.07);
   --accent:#e8735a;--accentg:rgba(232,115,90,.15);
-  --green:#e8735a;--greeng:rgba(232,115,90,.18);--greend:#a8402a;
+  --green:#e8735a;--greeng:rgba(232,115,90,.18);--greend:#a8402a;--on-accent:#fff;
 }
 body.eclipse .bp{background:linear-gradient(135deg,var(--green),#a8402a)!important;box-shadow:0 4px 20px rgba(232,115,90,.25),inset 0 1px 0 rgba(255,255,255,.18)!important}
 
@@ -100,7 +100,10 @@ body.mono{
   --gold:#ffffff;--gg:rgba(255,255,255,.15);--silver:#999999;
   --glass:rgba(10,10,10,.94);--ghost:rgba(255,255,255,.06);
   --accent:#ffffff;--accentg:rgba(255,255,255,.15);
-  --green:#ffffff;--greeng:rgba(255,255,255,.16);--greend:#cccccc;
+  /* diferente dos outros três temas: aqui o acento É branco, então o texto
+     por cima dele precisa ser escuro — não #fff feito nos outros temas,
+     senão vira texto branco sobre fundo branco, invisível */
+  --green:#ffffff;--greeng:rgba(255,255,255,.16);--greend:#cccccc;--on-accent:#0a0a0a;
 }
 body.mono #bgCanvas{filter:grayscale(1)}
 /* CORRIGIDO — eu tinha colocado o fundo secreto num pseudo-elemento atrás de
@@ -131,6 +134,54 @@ body.mono .llogo,body.mono .brand h1,body.mono .rtitle{color:#f5f5f5;text-shadow
 .ti-olho{display:none}
 .virou-olho .ti-ecl{display:none}
 .virou-olho .ti-olho{display:block}
+
+/* ── ARMAGEDDON ──────────────────────────────────────────────────────────
+   Quando o modo secreto está ativo, TODOS os ícones de tema (não só o do
+   eclipse) viram o olho, tremendo um pouco rápido. Usa steps() no lugar de
+   uma curva suave de propósito: o tremor aos pulinhos é o que dá a leitura
+   de "glitch" em vez de simples vibração. */
+body.mono .ti > svg:not(.ti-olho),
+body.mono .ti > i{display:none}
+body.mono .ti-olho{display:block;animation:olhoTremer .24s steps(2,end) infinite}
+@keyframes olhoTremer{
+  0%  {transform:translate(0,0)}
+  25% {transform:translate(-.7px,.5px)}
+  50% {transform:translate(.6px,-.6px)}
+  75% {transform:translate(-.5px,-.4px)}
+  100%{transform:translate(.7px,.4px)}
+}
+/* o nome do tema também muda de "Eclipse" para o nome do modo secreto */
+.theme-name-secreto{display:none}
+body.mono .theme-name-normal{display:none}
+body.mono .theme-name-secreto{display:inline;letter-spacing:.14em;text-transform:uppercase;font-size:.6rem}
+
+/* ── MODO GLITCH ─────────────────────────────────────────────────────────
+   Camada EXTRA por cima do Armageddon (body.mono.glitch), ligada ao tocar de
+   novo no botão do olho. Mais agressivo: o tremor dos ícones fica maior e
+   mais rápido, com um deslocamento de cor (vermelho/ciano) que lembra falha
+   de vídeo de verdade, e o texto "Armageddon" também treme. Só efeitos
+   visuais por animação — não mexe em nenhum elemento nem em nenhuma função. */
+body.mono.glitch .ti-olho{animation:olhoGlitch .12s steps(2,end) infinite;
+  filter:drop-shadow(-1.5px 0 0 rgba(255,60,60,.85)) drop-shadow(1.5px 0 0 rgba(60,220,255,.85))}
+@keyframes olhoGlitch{
+  0%  {transform:translate(0,0) scaleX(1)}
+  20% {transform:translate(-2px,1px) scaleX(1.1)}
+  40% {transform:translate(2px,-1.5px) scaleX(.92)}
+  60% {transform:translate(-1.5px,-1px) scaleX(1.06)}
+  80% {transform:translate(1.5px,1.5px) scaleX(.96)}
+  100%{transform:translate(0,0) scaleX(1)}
+}
+body.mono.glitch .theme-name-secreto{animation:nomeGlitch .18s steps(2,end) infinite}
+@keyframes nomeGlitch{
+  0%  {transform:translateX(0);text-shadow:none}
+  33% {transform:translateX(-1.5px);text-shadow:1.5px 0 rgba(255,60,60,.8),-1.5px 0 rgba(60,220,255,.8)}
+  66% {transform:translateX(1.5px);text-shadow:-1.5px 0 rgba(255,60,60,.8),1.5px 0 rgba(60,220,255,.8)}
+  100%{transform:translateX(0);text-shadow:none}
+}
+/* quem prefere menos movimento não leva tremor nenhum — acessibilidade */
+@media (prefers-reduced-motion:reduce){
+  body.mono .ti-olho,body.mono.glitch .ti-olho,body.mono.glitch .theme-name-secreto{animation:none}
+}
 
 body.eclipse .rcode{background:rgba(232,115,90,.06)!important;border-color:rgba(232,115,90,.18)!important}
 body.eclipse .rcode:hover{border-color:var(--green)!important;background:rgba(232,115,90,.12)!important}
@@ -483,14 +534,20 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 /* pontinho de acento antes do título — um toque de identidade, discreto */
 .board-title::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
-.board-tools{display:flex;align-items:center;gap:.15rem;flex:1;flex-wrap:wrap;
+/* CORRIGIDO — flex:1 esticava o grupo até preencher todo o espaço restante
+   do cabeçalho, bem mais do que os três botões precisam, deixando-o largo e
+   esparso. Agora ele só ocupa o tamanho do próprio conteúdo. */
+.board-tools{display:flex;align-items:center;gap:.1rem;flex-wrap:wrap;
   background:var(--mist);border:1px solid var(--ridge);border-radius:var(--rm);padding:.2rem}
 .board-act{display:inline-flex;align-items:center;gap:.35rem;padding:.42rem .7rem;
   background:transparent;border:none;border-radius:calc(var(--rm) - 3px);color:var(--ash);
   font-size:.76rem;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;
   transition:background .15s,color .15s}
 .board-act:hover{background:var(--greeng);color:var(--bone)}
-.board-act.on{background:var(--green);color:#fff}
+/* CORRIGIDO — usava #fff fixo. No modo secreto o acento É branco, então
+   virava texto branco sobre fundo branco. Agora usa a cor de texto certa
+   pra cada tema. */
+.board-act.on{background:var(--green);color:var(--on-accent)}
 .board-act svg{flex-shrink:0}
 .board-act-div{width:1px;height:16px;background:var(--ridge);flex-shrink:0}
 /* Fechar tem peso visual menor de propósito — não é uma ação igual às outras,
@@ -654,7 +711,9 @@ body.light .cw::before{background:rgba(200,232,220,.12);backdrop-filter:none}
 .dm-bubble{max-width:72%;padding:.55rem .75rem;border-radius:14px;font-size:.85rem;
   line-height:1.4;word-break:break-word;background:var(--mist);color:var(--bone);
   border:1px solid var(--ridge)}
-.dm-bubble.mine{background:var(--green);color:#fff;border-color:transparent}
+/* CORRIGIDO — mesmo problema: #fff fixo virava invisível no modo secreto,
+   onde o próprio acento já é branco. */
+.dm-bubble.mine{background:var(--green);color:var(--on-accent);border-color:transparent}
 .member-row:hover{background:rgba(255,255,255,.05);border-color:rgba(217,122,154,.15)}
 .member-av{position:relative;width:44px;height:44px;flex-shrink:0;border-radius:50%}
 .member-lbl{display:flex;flex-direction:column;min-width:0;flex:1}
